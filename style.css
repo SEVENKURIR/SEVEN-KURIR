@@ -107,7 +107,7 @@ header.topbar{
 .chevron{color:var(--muted); font-size:14px; transition:transform .2s ease;}
 .chevron.open{transform:rotate(180deg);}
 
-.mini-stats{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); margin:0 20px; border-radius:12px; overflow:hidden;}
+.mini-stats{display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--line); margin:0 20px; border-radius:12px; overflow:hidden;}
 .mini-stat{background:var(--surface); padding:10px 8px; text-align:center;}
 .mini-stat .lbl{color:var(--muted); font-size:9.5px; text-transform:uppercase; letter-spacing:0.4px; font-weight:700;}
 .mini-stat .val{font-family:'JetBrains Mono', monospace; font-weight:700; font-size:12.5px; margin-top:4px; color:var(--text);}
