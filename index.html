@@ -71,7 +71,7 @@ function initFilters(){
     if(i+1 === now.getMonth()+1) opt.selected = true;
     selBulan.appendChild(opt);
   });
-  for(let y = now.getFullYear(); y >= now.getFullYear()-3; y--){
+  for(let y = now.getFullYear(); y >= now.getFullYear()+1; y--){
     const opt = document.createElement('option');
     opt.value = y; opt.textContent = y;
     selTahun.appendChild(opt);
@@ -168,7 +168,6 @@ function render(){
         </div>
         <div>
           <div class="bersih">${rupiah(totalSetoranKeAdmin)}</div>
-          <div class="kotor">${rupiah(totalKeseluruhan)}</div>
         </div>
       </div>
       <div class="detail-panel ${isOpen?'open':''}" style="padding-top:14px;">
