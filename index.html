@@ -138,7 +138,7 @@ function render(){
     const tahunIni = sumTahun(id, tahun);
     const persen = d.persen ?? 15;
     const totalKeseluruhan = sumTotal(id);
-    const totalSetelahPotongan = totalKeseluruhan * (1 - persen/100);
+    const totalSetoranKeAdmin = totalKeseluruhan * (persen/100);
     const isOpen = openDriverId === id;
 
     const prefix = `${tahun}-${String(bulan).padStart(2,'0')}`;
@@ -163,11 +163,11 @@ function render(){
       </div>
       <div class="setoran-item" style="margin:14px 20px 0; padding:12px 14px; background:var(--surface-soft); border-radius:12px;">
         <div>
-          <div class="periode">Total Keseluruhan</div>
-          <span class="tag">-${persen}%</span>
+          <div class="periode">Setoran ke Admin</div>
+          <span class="tag">${persen}% dari total</span>
         </div>
         <div>
-          <div class="bersih">${rupiah(totalSetelahPotongan)}</div>
+          <div class="bersih">${rupiah(totalSetoranKeAdmin)}</div>
           <div class="kotor">${rupiah(totalKeseluruhan)}</div>
         </div>
       </div>
