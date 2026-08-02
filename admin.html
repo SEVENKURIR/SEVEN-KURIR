@@ -62,6 +62,10 @@
           <label>Nama Driver</label>
           <input type="text" id="newDriverName" placeholder="Contoh: Andi Saputra">
         </div>
+        <div class="field">
+          <label>Persen Potongan Default (%)</label>
+          <input type="number" id="newDriverPersen" placeholder="Contoh: 17">
+        </div>
         <button class="btn btn-primary btn-block" id="btnAddDriver">+ Tambah Driver</button>
         <div class="success-msg" id="addDriverSuccess">Driver berhasil ditambahkan.</div>
       </div>
@@ -91,9 +95,16 @@
   </section>
 
   <section class="section" style="padding-top:0;">
-    <div class="card">
-      <div class="section-head"><h2>Orderan Terbaru</h2></div>
-      <div id="recentOrdersList"><div class="empty-note">Memuat...</div></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="section-head"><h2>Kelola Driver</h2></div>
+        <div class="section-desc">Ubah persen potongan default tiap driver, atau hapus driver.</div>
+        <div id="driverManageList"><div class="empty-note">Memuat...</div></div>
+      </div>
+      <div class="card">
+        <div class="section-head"><h2>Orderan Terbaru</h2></div>
+        <div id="recentOrdersList"><div class="empty-note">Memuat...</div></div>
+      </div>
     </div>
   </section>
 
@@ -233,6 +244,7 @@ function attachListeners(){
     drivers = snap.val() || {};
     populateDriverSelects();
     renderRecentOrders();
+    renderDriverManage();
   });
   db.ref('orders').on('value', snap=>{
     orders = snap.val() || {};
@@ -259,12 +271,43 @@ function populateDriverSelects(){
 /* ===== Tambah Driver ===== */
 document.getElementById('btnAddDriver').addEventListener('click', ()=>{
   const name = document.getElementById('newDriverName').value.trim();
-  if(!name) return;
-  db.ref('drivers').push({ name }).then(()=>{
+  const persen = parseFloat(document.getElementById('newDriverPersen').value);
+  if(!name || isNaN(persen)) return;
+  db.ref('drivers').push({ name, persen }).then(()=>{
     document.getElementById('newDriverName').value='';
+    document.getElementById('newDriverPersen').value='';
     flash(document.getElementById('addDriverSuccess'));
   });
 });
+
+/* ===== Kelola Driver ===== */
+function renderDriverManage(){
+  const wrap = document.getElementById('driverManageList');
+  const ids = Object.keys(drivers);
+  wrap.innerHTML = ids.length ? ids.map(id=>{
+    const d = drivers[id];
+    return `
+    <div class="list-row">
+      <div style="flex:1;">
+        <div class="l-title">${escapeHtml(d.name)}</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <input type="number" value="${d.persen ?? 15}" style="width:64px; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:12.5px;" onchange="updateDriverPersen('${id}', this.value)">
+        <span style="font-size:12px; color:var(--muted);">%</span>
+        <button class="btn btn-danger btn-sm" onclick="deleteDriver('${id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('') : `<div class="empty-note">Belum ada driver.</div>`;
+}
+function updateDriverPersen(id, val){
+  const persen = parseFloat(val);
+  if(isNaN(persen)) return;
+  db.ref(`drivers/${id}/persen`).set(persen);
+}
+function deleteDriver(id){
+  if(!confirm('Hapus driver ini? Data orderan & setorannya TIDAK ikut terhapus otomatis.')) return;
+  db.ref(`drivers/${id}`).remove();
+}
 
 /* ===== Input Orderan Harian ===== */
 document.getElementById('btnAddOrder').addEventListener('click', ()=>{
