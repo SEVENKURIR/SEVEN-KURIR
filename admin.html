@@ -13,7 +13,7 @@
 <!-- ====== LOGIN SCREEN ====== -->
 <div class="login-wrap" id="loginScreen">
   <div class="login-card">
-    <img src="LOGO SEVEN KURIR.png" alt="Seven Kurir" class="plate">
+    <div class="plate">7</div>
     <h1>Login Admin</h1>
     <p>Seven Kurir — Panel Admin</p>
     <div class="field">
@@ -162,12 +162,30 @@
       <div class="section-head"><h2>Cashflow Pribadi Admin</h2></div>
       <div class="section-desc">Bagian ini cuma keliatan buat admin yang login — nggak nyambung ke data driver.</div>
       <div class="stats-row" id="cfStats" style="margin-bottom:18px;"></div>
+
+      <div class="grid-2" style="margin-bottom:20px;">
+        <div class="card" style="box-shadow:none; border:1px solid var(--line);">
+          <div class="section-desc" style="margin-top:0; margin-bottom:10px;">Pemasukan vs Pengeluaran (6 bulan terakhir)</div>
+          <canvas id="barChart" height="220"></canvas>
+        </div>
+        <div class="card" style="box-shadow:none; border:1px solid var(--line);">
+          <div class="section-desc" style="margin-top:0; margin-bottom:10px;">Breakdown Pengeluaran per Kategori (bulan ini)</div>
+          <canvas id="donutChart" height="220"></canvas>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Ketik Cepat (opsional)</label>
+        <input type="text" id="cfQuickInput" placeholder='Contoh: "jajan 5k" atau "beli liquid 80k"'>
+      </div>
+      <div class="section-desc" style="margin-top:-8px;">Ketik lalu tekan Enter — nominal & kategori bakal ke-isi otomatis, tetep bisa diedit sebelum disimpan.</div>
+
       <div class="field-row">
         <div class="field">
           <label>Tipe</label>
           <select id="cfTipe">
             <option value="masuk">Uang Masuk</option>
-            <option value="keluar">Uang Keluar</option>
+            <option value="keluar" selected>Uang Keluar</option>
           </select>
         </div>
         <div class="field">
@@ -177,13 +195,17 @@
       </div>
       <div class="field-row">
         <div class="field">
+          <label>Kategori</label>
+          <select id="cfKategori"></select>
+        </div>
+        <div class="field">
           <label>Tanggal</label>
           <input type="date" id="cfTanggal">
         </div>
-        <div class="field">
-          <label>Catatan</label>
-          <input type="text" id="cfCatatan" placeholder="Contoh: Beli bensin">
-        </div>
+      </div>
+      <div class="field">
+        <label>Catatan</label>
+        <input type="text" id="cfCatatan" placeholder="Contoh: Beli bensin">
       </div>
       <button class="btn btn-primary btn-block" id="btnAddCashflow" style="margin-bottom:18px;">+ Catat Transaksi</button>
       <div id="cashflowList"></div>
@@ -196,9 +218,11 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="firebase-config.js"></script>
 <script>
 function rupiah(n){ return 'Rp' + Math.round(n||0).toLocaleString('id-ID'); }
+const BULAN_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 function formatTgl(iso){ const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; }
@@ -207,6 +231,81 @@ function flash(el){ el.style.display='block'; setTimeout(()=> el.style.display='
 let drivers = {};
 let orders = {};
 let cashflow = {};
+let barChartInstance = null;
+let donutChartInstance = null;
+
+/* ===== Kategori ===== */
+const KATEGORI_KELUAR = ['Makan & Minuman','Transportasi','Kebutuhan Pribadi','Operasional Motor','Tagihan','Kesehatan','Lainnya'];
+const KATEGORI_MASUK = ['Setoran Driver Masuk','Pemasukan Lain'];
+const KATEGORI_WARNA = {
+  'Makan & Minuman':'#FFC629', 'Transportasi':'#FF7A45', 'Kebutuhan Pribadi':'#00A651',
+  'Operasional Motor':'#3B82F6', 'Tagihan':'#A855F7', 'Kesehatan':'#EC4899', 'Lainnya':'#6B7280'
+};
+const KATA_KUNCI = {
+  'Makan & Minuman': ['makan','jajan','kopi','minum','sarapan','nasi','warteg','snack','gorengan','ngopi'],
+  'Transportasi': ['bensin','bbm','parkir','tol','ojek','grab','gojek'],
+  'Kebutuhan Pribadi': ['rokok','liquid','vape','pulsa','sabun','skincare','rambut','potong'],
+  'Operasional Motor': ['service','servis','oli','ban','motor','bengkel','cuci motor','spare part','sparepart'],
+  'Tagihan': ['listrik','internet','wifi','cicilan','kredit','pdam','token','pln'],
+  'Kesehatan': ['obat','dokter','vitamin','apotek','sakit','klinik'],
+  'Setoran Driver Masuk': ['setoran'],
+};
+
+function detectKategori(text, tipe){
+  const t = (text||'').toLowerCase();
+  const pool = tipe === 'masuk' ? KATEGORI_MASUK : KATEGORI_KELUAR;
+  for(const kategori of pool){
+    const kw = KATA_KUNCI[kategori];
+    if(kw && kw.some(k => t.includes(k))) return kategori;
+  }
+  return tipe === 'masuk' ? 'Pemasukan Lain' : 'Lainnya';
+}
+
+function parseNominalFromText(text){
+  const t = (text||'').toLowerCase();
+  // pola: angka diikuti k/rb/ribu -> dikali 1000. contoh "5k", "80 rb", "25ribu"
+  let m = t.match(/(\d+(?:[.,]\d+)?)\s*(k|rb|ribu)\b/);
+  if(m){
+    return Math.round(parseFloat(m[1].replace(',', '.')) * 1000);
+  }
+  // pola: angka format ribuan pake titik, contoh "25.000"
+  m = t.match(/(\d{1,3}(?:\.\d{3})+)/);
+  if(m){
+    return parseInt(m[1].replace(/\./g,''), 10);
+  }
+  // pola: angka polos gede (>=1000), contoh "25000"
+  m = t.match(/(\d{4,})/);
+  if(m){
+    return parseInt(m[1], 10);
+  }
+  return null;
+}
+
+function populateKategoriSelect(){
+  const tipe = document.getElementById('cfTipe').value;
+  const sel = document.getElementById('cfKategori');
+  const list = tipe === 'masuk' ? KATEGORI_MASUK : KATEGORI_KELUAR;
+  sel.innerHTML = list.map(k=>`<option value="${k}">${k}</option>`).join('');
+}
+document.getElementById('cfTipe').addEventListener('change', populateKategoriSelect);
+
+document.getElementById('cfQuickInput').addEventListener('keydown', e=>{
+  if(e.key !== 'Enter') return;
+  e.preventDefault();
+  const text = e.target.value.trim();
+  if(!text) return;
+  const nominal = parseNominalFromText(text);
+  // tebak tipe: kalau ada kata kunci "setoran" anggap masuk, selain itu keluar
+  const tipeTebakan = /setoran/i.test(text) ? 'masuk' : 'keluar';
+  document.getElementById('cfTipe').value = tipeTebakan;
+  populateKategoriSelect();
+  const kategori = detectKategori(text, tipeTebakan);
+  document.getElementById('cfKategori').value = kategori;
+  if(nominal) document.getElementById('cfJumlah').value = nominal;
+  document.getElementById('cfCatatan').value = text;
+  e.target.value = '';
+  document.getElementById('cfJumlah').focus();
+});
 
 /* ===== AUTH ===== */
 auth.onAuthStateChanged(user=>{
@@ -239,6 +338,7 @@ function attachListeners(){
   document.getElementById('orderTanggal').value = todayStr();
   document.getElementById('cfTanggal').value = todayStr();
   document.getElementById('setoranSampai').value = todayStr();
+  populateKategoriSelect();
 
   db.ref('drivers').on('value', snap=>{
     drivers = snap.val() || {};
@@ -402,8 +502,9 @@ document.getElementById('btnAddCashflow').addEventListener('click', ()=>{
   const jumlah = parseFloat(document.getElementById('cfJumlah').value);
   const tanggal = document.getElementById('cfTanggal').value;
   const catatan = document.getElementById('cfCatatan').value.trim();
+  const kategori = document.getElementById('cfKategori').value;
   if(!jumlah || !tanggal) return;
-  db.ref('cashflowAdmin').push({ tipe, jumlah, tanggal, catatan }).then(()=>{
+  db.ref('cashflowAdmin').push({ tipe, jumlah, tanggal, catatan, kategori }).then(()=>{
     document.getElementById('cfJumlah').value='';
     document.getElementById('cfCatatan').value='';
   });
@@ -423,7 +524,7 @@ function renderCashflow(){
     <div class="list-row">
       <div>
         <div class="l-title">${escapeHtml(c.catatan || (c.tipe==='masuk'?'Pemasukan':'Pengeluaran'))}</div>
-        <div class="l-sub">${formatTgl(c.tanggal)}</div>
+        <div class="l-sub">${formatTgl(c.tanggal)} · ${escapeHtml(c.kategori || 'Lainnya')}</div>
       </div>
       <div style="display:flex; align-items:center; gap:10px;">
         <div class="l-amount ${c.tipe}">${c.tipe==='masuk'?'+':'-'}${rupiah(c.jumlah)}</div>
@@ -431,6 +532,71 @@ function renderCashflow(){
       </div>
     </div>
   `).join('') : `<div class="empty-note">Belum ada transaksi.</div>`;
+
+  updateCharts(list);
+}
+
+/* ===== Charts ===== */
+function updateCharts(list){
+  // ---- Bar chart: masuk vs keluar, 6 bulan terakhir ----
+  const now = new Date();
+  const bulanLabels = [];
+  const bulanKeys = [];
+  for(let i=5; i>=0; i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    bulanKeys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    bulanLabels.push(BULAN_SHORT[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2));
+  }
+  const dataMasuk = bulanKeys.map(key => list.filter(c=>c.tipe==='masuk' && c.tanggal.startsWith(key)).reduce((s,c)=>s+Number(c.jumlah),0));
+  const dataKeluar = bulanKeys.map(key => list.filter(c=>c.tipe==='keluar' && c.tanggal.startsWith(key)).reduce((s,c)=>s+Number(c.jumlah),0));
+
+  const barCtx = document.getElementById('barChart').getContext('2d');
+  if(barChartInstance) barChartInstance.destroy();
+  barChartInstance = new Chart(barCtx, {
+    type: 'bar',
+    data: {
+      labels: bulanLabels,
+      datasets: [
+        { label: 'Masuk', data: dataMasuk, backgroundColor: '#00A651', borderRadius: 6 },
+        { label: 'Keluar', data: dataKeluar, backgroundColor: '#FF7A45', borderRadius: 6 }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom', labels:{ boxWidth:10, font:{size:11} } } },
+      scales: { y: { ticks: { callback: v => 'Rp' + (v/1000) + 'rb' } } }
+    }
+  });
+
+  // ---- Donut chart: breakdown pengeluaran kategori, bulan ini ----
+  const prefixBulanIni = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const keluarBulanIni = list.filter(c=>c.tipe==='keluar' && c.tanggal.startsWith(prefixBulanIni));
+  const perKategori = {};
+  keluarBulanIni.forEach(c=>{
+    const k = c.kategori || 'Lainnya';
+    perKategori[k] = (perKategori[k]||0) + Number(c.jumlah);
+  });
+  const labels = Object.keys(perKategori);
+  const values = labels.map(k=>perKategori[k]);
+  const colors = labels.map(k=> KATEGORI_WARNA[k] || '#6B7280');
+
+  const donutCtx = document.getElementById('donutChart').getContext('2d');
+  if(donutChartInstance) donutChartInstance.destroy();
+  donutChartInstance = new Chart(donutCtx, {
+    type: 'doughnut',
+    data: {
+      labels: labels.length ? labels : ['Belum ada data'],
+      datasets: [{
+        data: values.length ? values : [1],
+        backgroundColor: values.length ? colors : ['#EDEEF1'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom', labels:{ boxWidth:10, font:{size:10.5} } } }
+    }
+  });
 }
 function deleteCashflow(id){
   if(!confirm('Hapus transaksi ini?')) return;
