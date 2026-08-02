@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Seven Kurir</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ====== LOGIN SCREEN ====== -->
+<div class="login-wrap" id="loginScreen">
+  <div class="login-card">
+    <div class="plate">7</div>
+    <h1>Login Admin</h1>
+    <p>Seven Kurir — Panel Admin</p>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="admin@sevenkurir.com">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••••">
+    </div>
+    <div class="error-msg" id="loginError">Email atau password salah.</div>
+    <button class="btn btn-primary btn-block" id="btnDoLogin" style="margin-top:8px;">Masuk</button>
+    <div style="margin-top:16px;"><a href="index.html" style="color:var(--muted); font-size:12.5px;">← Balik ke dashboard driver</a></div>
+  </div>
+</div>
+
+<!-- ====== ADMIN PANEL (muncul setelah login) ====== -->
+<div id="adminPanel" style="display:none;">
+
+  <header class="topbar">
+    <a class="brand" href="admin.html">
+      <div class="plate">7</div>
+      <div>
+        <div class="brand-name">SEVEN KURIR</div>
+        <div class="brand-sub">Panel Admin</div>
+      </div>
+    </a>
+    <div style="display:flex; gap:10px;">
+      <a href="index.html" class="btn btn-outline btn-sm">Lihat Dashboard</a>
+      <button class="btn btn-danger btn-sm" id="btnLogout">Logout</button>
+    </div>
+  </header>
+
+  <section class="hero" style="padding-bottom:0;">
+    <div class="hero-eyebrow" id="loggedInAs">Masuk sebagai admin</div>
+    <h1 style="font-size:28px;">Kelola orderan, setoran, dan kas.</h1>
+  </section>
+
+  <section class="section">
+    <div class="grid-2">
+
+      <!-- ==== Tambah Driver ==== -->
+      <div class="card">
+        <div class="section-head"><h2>Tambah Driver</h2></div>
+        <div class="field">
+          <label>Nama Driver</label>
+          <input type="text" id="newDriverName" placeholder="Contoh: Andi Saputra">
+        </div>
+        <button class="btn btn-primary btn-block" id="btnAddDriver">+ Tambah Driver</button>
+        <div class="success-msg" id="addDriverSuccess">Driver berhasil ditambahkan.</div>
+      </div>
+
+      <!-- ==== Input Orderan Harian ==== -->
+      <div class="card">
+        <div class="section-head"><h2>Input Orderan Harian</h2></div>
+        <div class="field">
+          <label>Driver</label>
+          <select id="orderDriver"></select>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Tanggal</label>
+            <input type="date" id="orderTanggal">
+          </div>
+          <div class="field">
+            <label>Nominal (Rp)</label>
+            <input type="number" id="orderNominal" placeholder="230000">
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block" id="btnAddOrder">+ Simpan Orderan</button>
+        <div class="success-msg" id="addOrderSuccess">Orderan tersimpan.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head"><h2>Orderan Terbaru</h2></div>
+      <div id="recentOrdersList"><div class="empty-note">Memuat...</div></div>
+    </div>
+  </section>
+
+  <!-- ==== Buat Setoran ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head"><h2>Buat Setoran</h2></div>
+      <div class="section-desc">Pilih driver & rentang tanggal — total orderan di rentang itu otomatis dijumlah, lalu dipotong persen.</div>
+      <div class="field-row">
+        <div class="field">
+          <label>Driver</label>
+          <select id="setoranDriver"></select>
+        </div>
+        <div class="field">
+          <label>Persen Potongan</label>
+          <select id="setoranPersen">
+            <option value="15">15%</option>
+            <option value="17">17%</option>
+            <option value="custom">Lainnya...</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" id="wrapPersenCustom" style="display:none;">
+        <label>Persen Kustom</label>
+        <input type="number" id="setoranPersenCustom" placeholder="Contoh: 12">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Dari Tanggal</label>
+          <input type="date" id="setoranDari">
+        </div>
+        <div class="field">
+          <label>Sampai Tanggal</label>
+          <input type="date" id="setoranSampai">
+        </div>
+      </div>
+      <div class="card" style="background:var(--surface-soft); box-shadow:none; padding:14px 18px; margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; font-size:13px;">
+          <span>Total Kotor (preview)</span>
+          <b class="mono" id="setoranPreviewKotor">Rp0</b>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:6px;">
+          <span>Total Bersih (preview)</span>
+          <b class="mono" id="setoranPreviewBersih" style="color:var(--green);">Rp0</b>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" id="btnBuatSetoran">Buat Setoran</button>
+      <div class="success-msg" id="addSetoranSuccess">Setoran berhasil dibuat.</div>
+    </div>
+  </section>
+
+  <!-- ==== Cashflow Admin ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head"><h2>Cashflow Pribadi Admin</h2></div>
+      <div class="section-desc">Bagian ini cuma keliatan buat admin yang login — nggak nyambung ke data driver.</div>
+      <div class="stats-row" id="cfStats" style="margin-bottom:18px;"></div>
+      <div class="field-row">
+        <div class="field">
+          <label>Tipe</label>
+          <select id="cfTipe">
+            <option value="masuk">Uang Masuk</option>
+            <option value="keluar">Uang Keluar</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Jumlah (Rp)</label>
+          <input type="number" id="cfJumlah" placeholder="500000">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Tanggal</label>
+          <input type="date" id="cfTanggal">
+        </div>
+        <div class="field">
+          <label>Catatan</label>
+          <input type="text" id="cfCatatan" placeholder="Contoh: Beli bensin">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" id="btnAddCashflow" style="margin-bottom:18px;">+ Catat Transaksi</button>
+      <div id="cashflowList"></div>
+    </div>
+  </section>
+
+  <footer>Seven Kurir · Panel Admin · data tersimpan di Firebase</footer>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+function rupiah(n){ return 'Rp' + Math.round(n||0).toLocaleString('id-ID'); }
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function formatTgl(iso){ const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; }
+function flash(el){ el.style.display='block'; setTimeout(()=> el.style.display='none', 2500); }
+
+let drivers = {};
+let orders = {};
+let cashflow = {};
+
+/* ===== AUTH ===== */
+auth.onAuthStateChanged(user=>{
+  if(user){
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('adminPanel').style.display='block';
+    document.getElementById('loggedInAs').textContent = 'Masuk sebagai ' + user.email;
+    attachListeners();
+  } else {
+    document.getElementById('loginScreen').style.display='flex';
+    document.getElementById('adminPanel').style.display='none';
+  }
+});
+
+document.getElementById('btnDoLogin').addEventListener('click', ()=>{
+  const email = document.getElementById('loginEmail').value.trim();
+  const pw = document.getElementById('loginPassword').value;
+  document.getElementById('loginError').style.display='none';
+  auth.signInWithEmailAndPassword(email, pw).catch(err=>{
+    document.getElementById('loginError').style.display='block';
+  });
+});
+document.getElementById('loginPassword').addEventListener('keydown', e=>{
+  if(e.key==='Enter') document.getElementById('btnDoLogin').click();
+});
+document.getElementById('btnLogout').addEventListener('click', ()=> auth.signOut());
+
+/* ===== LISTENERS (cuma jalan setelah login) ===== */
+function attachListeners(){
+  document.getElementById('orderTanggal').value = todayStr();
+  document.getElementById('cfTanggal').value = todayStr();
+  document.getElementById('setoranSampai').value = todayStr();
+
+  db.ref('drivers').on('value', snap=>{
+    drivers = snap.val() || {};
+    populateDriverSelects();
+    renderRecentOrders();
+  });
+  db.ref('orders').on('value', snap=>{
+    orders = snap.val() || {};
+    renderRecentOrders();
+    updateSetoranPreview();
+  });
+  db.ref('cashflowAdmin').on('value', snap=>{
+    cashflow = snap.val() || {};
+    renderCashflow();
+  });
+}
+
+function populateDriverSelects(){
+  const ids = Object.keys(drivers);
+  const opts = ids.map(id=>`<option value="${id}">${escapeHtml(drivers[id].name)}</option>`).join('');
+  ['orderDriver','setoranDriver'].forEach(elId=>{
+    const el = document.getElementById(elId);
+    const prev = el.value;
+    el.innerHTML = opts || '<option value="">Belum ada driver</option>';
+    if(ids.includes(prev)) el.value = prev;
+  });
+}
+
+/* ===== Tambah Driver ===== */
+document.getElementById('btnAddDriver').addEventListener('click', ()=>{
+  const name = document.getElementById('newDriverName').value.trim();
+  if(!name) return;
+  db.ref('drivers').push({ name }).then(()=>{
+    document.getElementById('newDriverName').value='';
+    flash(document.getElementById('addDriverSuccess'));
+  });
+});
+
+/* ===== Input Orderan Harian ===== */
+document.getElementById('btnAddOrder').addEventListener('click', ()=>{
+  const driverId = document.getElementById('orderDriver').value;
+  const tanggal = document.getElementById('orderTanggal').value;
+  const nominal = parseFloat(document.getElementById('orderNominal').value);
+  if(!driverId || !tanggal || !nominal) return;
+  db.ref(`orders/${driverId}`).push({ tanggal, nominal }).then(()=>{
+    document.getElementById('orderNominal').value='';
+    flash(document.getElementById('addOrderSuccess'));
+  });
+});
+
+function renderRecentOrders(){
+  const wrap = document.getElementById('recentOrdersList');
+  let all = [];
+  Object.keys(orders).forEach(driverId=>{
+    const d = drivers[driverId];
+    Object.keys(orders[driverId]).forEach(orderId=>{
+      all.push({ driverId, orderId, driverName: d ? d.name : '(driver terhapus)', ...orders[driverId][orderId] });
+    });
+  });
+  all.sort((a,b)=> b.tanggal.localeCompare(a.tanggal));
+  all = all.slice(0, 15);
+  wrap.innerHTML = all.length ? all.map(o=>`
+    <div class="list-row">
+      <div>
+        <div class="l-title">${escapeHtml(o.driverName)}</div>
+        <div class="l-sub">${formatTgl(o.tanggal)}</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div class="l-amount">${rupiah(o.nominal)}</div>
+        <button class="btn btn-danger btn-sm" onclick="deleteOrder('${o.driverId}','${o.orderId}')">✕</button>
+      </div>
+    </div>
+  `).join('') : `<div class="empty-note">Belum ada orderan.</div>`;
+}
+function deleteOrder(driverId, orderId){
+  if(!confirm('Hapus orderan ini?')) return;
+  db.ref(`orders/${driverId}/${orderId}`).remove();
+}
+
+/* ===== Buat Setoran ===== */
+document.getElementById('setoranPersen').addEventListener('change', e=>{
+  document.getElementById('wrapPersenCustom').style.display = e.target.value==='custom' ? 'block' : 'none';
+  updateSetoranPreview();
+});
+['setoranDriver','setoranDari','setoranSampai','setoranPersenCustom'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', updateSetoranPreview);
+  document.getElementById(id).addEventListener('change', updateSetoranPreview);
+});
+
+function getSetoranPersen(){
+  const v = document.getElementById('setoranPersen').value;
+  return v === 'custom' ? parseFloat(document.getElementById('setoranPersenCustom').value || 0) : parseFloat(v);
+}
+function hitungKotorRange(driverId, dari, sampai){
+  const o = orders[driverId] || {};
+  return Object.values(o).filter(x => x.tanggal >= dari && x.tanggal <= sampai)
+    .reduce((s,x)=> s + Number(x.nominal||0), 0);
+}
+function updateSetoranPreview(){
+  const driverId = document.getElementById('setoranDriver').value;
+  const dari = document.getElementById('setoranDari').value;
+  const sampai = document.getElementById('setoranSampai').value;
+  const persen = getSetoranPersen();
+  let kotor = 0;
+  if(driverId && dari && sampai){ kotor = hitungKotorRange(driverId, dari, sampai); }
+  const bersih = kotor * (1 - (persen||0)/100);
+  document.getElementById('setoranPreviewKotor').textContent = rupiah(kotor);
+  document.getElementById('setoranPreviewBersih').textContent = rupiah(bersih);
+}
+
+document.getElementById('btnBuatSetoran').addEventListener('click', ()=>{
+  const driverId = document.getElementById('setoranDriver').value;
+  const dari = document.getElementById('setoranDari').value;
+  const sampai = document.getElementById('setoranSampai').value;
+  const persen = getSetoranPersen();
+  if(!driverId || !dari || !sampai || isNaN(persen)) return;
+  const totalKotor = hitungKotorRange(driverId, dari, sampai);
+  const totalBersih = totalKotor * (1 - persen/100);
+  db.ref(`setoran/${driverId}`).push({
+    dariTanggal: dari, sampaiTanggal: sampai, persen, totalKotor, totalBersih
+  }).then(()=>{
+    flash(document.getElementById('addSetoranSuccess'));
+  });
+});
+
+/* ===== Cashflow Admin ===== */
+document.getElementById('btnAddCashflow').addEventListener('click', ()=>{
+  const tipe = document.getElementById('cfTipe').value;
+  const jumlah = parseFloat(document.getElementById('cfJumlah').value);
+  const tanggal = document.getElementById('cfTanggal').value;
+  const catatan = document.getElementById('cfCatatan').value.trim();
+  if(!jumlah || !tanggal) return;
+  db.ref('cashflowAdmin').push({ tipe, jumlah, tanggal, catatan }).then(()=>{
+    document.getElementById('cfJumlah').value='';
+    document.getElementById('cfCatatan').value='';
+  });
+});
+
+function renderCashflow(){
+  const list = Object.keys(cashflow).map(id=>({id, ...cashflow[id]})).sort((a,b)=> b.tanggal.localeCompare(a.tanggal));
+  let masuk=0, keluar=0;
+  list.forEach(c=> c.tipe==='masuk' ? masuk+=Number(c.jumlah) : keluar+=Number(c.jumlah));
+  document.getElementById('cfStats').innerHTML = `
+    <div class="stat-card"><div class="label">Uang Masuk</div><div class="value hivis mono">${rupiah(masuk)}</div></div>
+    <div class="stat-card"><div class="label">Uang Keluar</div><div class="value orange mono">${rupiah(keluar)}</div></div>
+    <div class="stat-card"><div class="label">Saldo</div><div class="value mono">${rupiah(masuk-keluar)}</div></div>
+  `;
+  const wrap = document.getElementById('cashflowList');
+  wrap.innerHTML = list.length ? list.map(c=>`
+    <div class="list-row">
+      <div>
+        <div class="l-title">${escapeHtml(c.catatan || (c.tipe==='masuk'?'Pemasukan':'Pengeluaran'))}</div>
+        <div class="l-sub">${formatTgl(c.tanggal)}</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div class="l-amount ${c.tipe}">${c.tipe==='masuk'?'+':'-'}${rupiah(c.jumlah)}</div>
+        <button class="btn btn-danger btn-sm" onclick="deleteCashflow('${c.id}')">✕</button>
+      </div>
+    </div>
+  `).join('') : `<div class="empty-note">Belum ada transaksi.</div>`;
+}
+function deleteCashflow(id){
+  if(!confirm('Hapus transaksi ini?')) return;
+  db.ref(`cashflowAdmin/${id}`).remove();
+}
+</script>
+</body>
+</html>
