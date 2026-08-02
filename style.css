@@ -40,6 +40,7 @@ header.topbar{
   display:flex; align-items:center; justify-content:center;
   box-shadow: var(--shadow);
   flex-shrink:0;
+  .plate{ object-fit:cover; }
 }
 .brand-name{font-family:'Poppins', sans-serif; font-weight:700; font-size:18px; color:var(--text);}
 .brand-sub{color:var(--muted); font-size:12px; margin-top:-1px;}
