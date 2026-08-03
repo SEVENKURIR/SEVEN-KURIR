@@ -163,6 +163,8 @@ header.topbar{
 .list-row .l-amount{font-family:'JetBrains Mono', monospace; font-weight:700; font-size:13.5px;}
 .list-row .l-amount.masuk{color:var(--green);}
 .list-row .l-amount.keluar{color:var(--orange);}
+.list-row .l-amount.hivis{color:var(--green);}
+.list-row .l-amount.orange{color:var(--orange);}
 
 /* ===== Login screen ===== */
 .login-wrap{

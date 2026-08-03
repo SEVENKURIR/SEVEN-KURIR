@@ -104,8 +104,21 @@
       </div>
       <div class="card">
         <div class="section-head"><h2>Orderan Terbaru</h2></div>
-        <div id="recentOrdersList"><div class="empty-note">Memuat...</div></div>
+        <div id="recentOrdersList" style="max-height:340px; overflow-y:auto;"><div class="empty-note">Memuat...</div></div>
       </div>
+    </div>
+  </section>
+
+  <!-- ==== Kalkulator Potongan ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head"><h2>Kalkulator Potongan Driver</h2></div>
+      <div class="section-desc">15% itu potongan normal. 17%/19%/20% biasanya karena kena denda — kalkulator ini nunjukin selisihnya dibanding potongan normal.</div>
+      <div class="field">
+        <label>Total Pendapatan (Rp)</label>
+        <input type="number" id="kalkTotal" placeholder="3000000">
+      </div>
+      <div id="kalkResult"></div>
     </div>
   </section>
 
@@ -198,12 +211,6 @@
           <canvas id="donutChart" height="220"></canvas>
         </div>
       </div>
-
-      <div class="field">
-        <label>Ketik Cepat (opsional)</label>
-        <input type="text" id="cfQuickInput" placeholder='Contoh: "jajan 5k" atau "beli liquid 80k"'>
-      </div>
-      <div class="section-desc" style="margin-top:-8px;">Ketik lalu tekan Enter — nominal & kategori bakal ke-isi otomatis, tetep bisa diedit sebelum disimpan.</div>
 
       <div class="field-row">
         <div class="field">
@@ -328,24 +335,6 @@ function populateKategoriSelect(){
   sel.innerHTML = list.map(k=>`<option value="${k}">${k}</option>`).join('');
 }
 document.getElementById('cfTipe').addEventListener('change', populateKategoriSelect);
-
-document.getElementById('cfQuickInput').addEventListener('keydown', e=>{
-  if(e.key !== 'Enter') return;
-  e.preventDefault();
-  const text = e.target.value.trim();
-  if(!text) return;
-  const nominal = parseNominalFromText(text);
-  // tebak tipe: kalau ada kata kunci "setoran" anggap masuk, selain itu keluar
-  const tipeTebakan = /setoran/i.test(text) ? 'masuk' : 'keluar';
-  document.getElementById('cfTipe').value = tipeTebakan;
-  populateKategoriSelect();
-  const kategori = detectKategori(text, tipeTebakan);
-  document.getElementById('cfKategori').value = kategori;
-  if(nominal) document.getElementById('cfJumlah').value = nominal;
-  document.getElementById('cfCatatan').value = text;
-  e.target.value = '';
-  document.getElementById('cfJumlah').focus();
-});
 
 /* ===== AUTH ===== */
 auth.onAuthStateChanged(user=>{
@@ -668,6 +657,35 @@ function deleteCashflow(id){
   if(!confirm('Hapus transaksi ini?')) return;
   db.ref(`cashflowAdmin/${id}`).remove();
 }
+
+/* ===== Kalkulator Potongan ===== */
+const KALK_PERSEN_LIST = [15, 17, 19, 20];
+function renderKalkulator(){
+  const total = parseFloat(document.getElementById('kalkTotal').value) || 0;
+  const normalPersen = 15;
+  const rows = KALK_PERSEN_LIST.map(p=>{
+    const potongan = total * (p/100);
+    const sisaDriver = total - potongan;
+    const selisihDenda = total * ((p - normalPersen)/100);
+    const dendaLabel = p === normalPersen
+      ? '<span style="color:var(--muted); font-size:11px;">Normal</span>'
+      : `<span style="color:var(--danger); font-size:11px;">+${rupiah(selisihDenda)} denda</span>`;
+    return `
+      <div class="list-row">
+        <div>
+          <div class="l-title">${p}%</div>
+          <div class="l-sub">${dendaLabel}</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="l-amount orange">Potongan: ${rupiah(potongan)}</div>
+          <div class="l-amount hivis" style="margin-top:2px;">Sisa Driver: ${rupiah(sisaDriver)}</div>
+        </div>
+      </div>`;
+  }).join('');
+  document.getElementById('kalkResult').innerHTML = total > 0 ? rows : `<div class="empty-note">Masukin total pendapatan dulu.</div>`;
+}
+document.getElementById('kalkTotal').addEventListener('input', renderKalkulator);
+renderKalkulator();
 
 /* ===== Saldo Awal ===== */
 document.getElementById('btnSaveSaldoAwal').addEventListener('click', ()=>{
