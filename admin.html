@@ -13,7 +13,7 @@
 <!-- ====== LOGIN SCREEN ====== -->
 <div class="login-wrap" id="loginScreen">
   <div class="login-card">
-    <div class="plate">7</div>
+    <div class="plate"><img src="LOGO%20SEVEN%20KURIR.png" alt="Seven Kurir"></div>
     <h1>Login Admin</h1>
     <p>Seven Kurir — Panel Admin</p>
     <div class="field">
@@ -35,7 +35,7 @@
 
   <header class="topbar">
     <a class="brand" href="admin.html">
-      <div class="plate">7</div>
+      <div class="plate"><img src="LOGO%20SEVEN%20KURIR.png" alt="Seven Kurir"></div>
       <div>
         <div class="brand-name">SEVEN KURIR</div>
         <div class="brand-sub">Panel Admin</div>
@@ -44,7 +44,7 @@
     <div style="display:flex; gap:10px;">
       <button class="theme-toggle" id="btnTheme" title="Ganti tema">🌙</button>
       <a href="index.html" class="btn btn-outline btn-sm">Lihat Dashboard</a>
-      <a href="utang.html" class="btn btn-outline btn-sm">Login Owner</a>
+      <a href="utang.html" class="btn btn-outline btn-sm">Utang</a>
       <button class="btn btn-danger btn-sm" id="btnLogout">Logout</button>
     </div>
   </header>
@@ -124,6 +124,31 @@
       <div id="bulkPreviewResult" style="margin-top:14px;"></div>
       <button class="btn btn-primary btn-block" id="btnBulkSave" style="display:none; margin-top:12px;">Simpan Semua</button>
       <div class="success-msg" id="bulkSaveSuccess">Orderan massal tersimpan.</div>
+    </div>
+  </section>
+
+  <!-- ==== Kelola / Hapus Orderan ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head"><h2>Kelola / Hapus Orderan</h2></div>
+      <div class="section-desc">Kepake pas salah input driver (misal kepencet ke driver lain pas backfill) — bisa hapus satu-satu atau langsung per rentang tanggal.</div>
+      <div class="field">
+        <label>Pilih Driver</label>
+        <select id="manageOrderDriver"></select>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Hapus Rentang Tanggal (opsional)</label>
+          <input type="date" id="manageDeleteDari">
+        </div>
+        <div class="field">
+          <label>Sampai</label>
+          <input type="date" id="manageDeleteSampai">
+        </div>
+      </div>
+      <button class="btn btn-danger btn-block" id="btnDeleteRange" style="margin-bottom:18px;">Hapus Semua di Rentang Ini</button>
+      <div class="section-desc" style="margin-top:0; margin-bottom:8px;">Atau hapus satu-satu:</div>
+      <div id="manageOrderList" style="max-height:400px; overflow-y:auto;"><div class="empty-note">Pilih driver dulu.</div></div>
     </div>
   </section>
 
@@ -279,6 +304,7 @@ function attachListeners(){
     orders = snap.val() || {};
     renderRecentOrders();
     updateSetoranPreview();
+    renderManageOrderList();
   });
   db.ref('activityLog').on('value', snap=>{
     activityLog = snap.val() || {};
@@ -322,7 +348,7 @@ function renderActivityLog(){
 function populateDriverSelects(){
   const ids = Object.keys(drivers);
   const opts = ids.map(id=>`<option value="${id}">${escapeHtml(drivers[id].name)}</option>`).join('');
-  ['orderDriver','setoranDriver','bulkOrderDriver'].forEach(elId=>{
+  ['orderDriver','setoranDriver','bulkOrderDriver','manageOrderDriver'].forEach(elId=>{
     const el = document.getElementById(elId);
     const prev = el.value;
     el.innerHTML = opts || '<option value="">Belum ada driver</option>';
@@ -421,8 +447,64 @@ function deleteOrder(driverId, orderId){
   const nama = drivers[driverId] ? drivers[driverId].name : driverId;
   db.ref(`orders/${driverId}/${orderId}`).remove().then(()=>{
     logActivity(`Hapus orderan: ${nama}`);
+    renderManageOrderList();
   });
 }
+
+/* ===== Kelola / Hapus Orderan ===== */
+document.getElementById('manageOrderDriver').addEventListener('change', renderManageOrderList);
+
+function renderManageOrderList(){
+  const wrap = document.getElementById('manageOrderList');
+  if(!wrap) return;
+  const driverId = document.getElementById('manageOrderDriver').value;
+  if(!driverId){ wrap.innerHTML = `<div class="empty-note">Pilih driver dulu.</div>`; return; }
+
+  const list = Object.keys(orders[driverId] || {})
+    .map(id=>({ id, ...orders[driverId][id] }))
+    .sort((a,b)=> b.tanggal.localeCompare(a.tanggal));
+
+  wrap.innerHTML = list.length ? list.map(o=>`
+    <div class="list-row">
+      <div class="l-title">${formatTgl(o.tanggal)}</div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div class="l-amount mono">${rupiah(o.nominal)}</div>
+        <button class="btn btn-danger btn-sm" onclick="deleteOrder('${driverId}','${o.id}')">✕</button>
+      </div>
+    </div>
+  `).join('') : `<div class="empty-note">Driver ini belum punya orderan.</div>`;
+}
+
+document.getElementById('btnDeleteRange').addEventListener('click', ()=>{
+  const driverId = document.getElementById('manageOrderDriver').value;
+  const dari = document.getElementById('manageDeleteDari').value;
+  let sampai = document.getElementById('manageDeleteSampai').value;
+  if(!driverId){ alert('Pilih driver dulu.'); return; }
+  if(!dari){ alert('Isi tanggal mulai (Dari) minimal.'); return; }
+  if(!sampai) sampai = dari;
+
+  const nama = drivers[driverId] ? drivers[driverId].name : driverId;
+  const toDelete = Object.keys(orders[driverId] || {})
+    .map(id=>({ id, ...orders[driverId][id] }))
+    .filter(o=> o.tanggal >= dari && o.tanggal <= sampai);
+
+  if(!toDelete.length){
+    alert('Gak ada orderan di rentang tanggal itu buat driver ini.');
+    return;
+  }
+
+  const totalNominal = toDelete.reduce((s,o)=>s+Number(o.nominal||0), 0);
+  const ok = confirm(`Hapus ${toDelete.length} orderan milik ${nama} (${formatTgl(dari)} - ${formatTgl(sampai)}), total ${rupiah(totalNominal)}?\n\nAksi ini gak bisa dibatalin.`);
+  if(!ok) return;
+
+  const updates = {};
+  toDelete.forEach(o=>{ updates[`orders/${driverId}/${o.id}`] = null; });
+  db.ref().update(updates).then(()=>{
+    logActivity(`Hapus massal ${toDelete.length} orderan ${nama} (${formatTgl(dari)}-${formatTgl(sampai)}, ${rupiah(totalNominal)})`);
+    document.getElementById('manageDeleteDari').value = '';
+    document.getElementById('manageDeleteSampai').value = '';
+  });
+});
 
 /* ===== Buat Setoran ===== */
 document.getElementById('setoranPersen').addEventListener('change', e=>{
