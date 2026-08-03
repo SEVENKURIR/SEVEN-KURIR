@@ -258,6 +258,15 @@
     </div>
   </section>
 
+  <!-- ==== Log Aktivitas ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head"><h2>Log Aktivitas</h2></div>
+      <div class="section-desc">Catatan otomatis tiap ada perubahan data — siapa yang ngelakuin, apa aksinya, kapan.</div>
+      <div id="activityLogList" style="max-height:340px; overflow-y:auto;"><div class="empty-note">Memuat...</div></div>
+    </div>
+  </section>
+
   <footer>Seven Kurir · Panel Admin · data tersimpan di Firebase</footer>
 </div>
 
@@ -277,6 +286,7 @@ function flash(el){ el.style.display='block'; setTimeout(()=> el.style.display='
 let drivers = {};
 let orders = {};
 let cashflow = {};
+let activityLog = {};
 let saldoAwal = { bri: 0, seabank: 0, tunai: 0 };
 let barChartInstance = null;
 let donutChartInstance = null;
@@ -386,6 +396,10 @@ function attachListeners(){
     cashflow = snap.val() || {};
     renderCashflow();
   });
+  db.ref('activityLog').on('value', snap=>{
+    activityLog = snap.val() || {};
+    renderActivityLog();
+  });
   db.ref('saldoAwal').on('value', snap=>{
     saldoAwal = snap.val() || { bri:0, seabank:0, tunai:0 };
     document.getElementById('saldoBri').value = saldoAwal.bri || '';
@@ -393,6 +407,39 @@ function attachListeners(){
     document.getElementById('saldoTunai').value = saldoAwal.tunai || '';
     renderCashflow();
   });
+}
+
+/* ===== Log Aktivitas ===== */
+function logActivity(aksi){
+  const admin = (auth.currentUser && auth.currentUser.email) || 'Admin';
+  db.ref('activityLog').push({ waktu: Date.now(), admin, aksi });
+}
+function waktuRelatif(ts){
+  const diff = Date.now() - ts;
+  const menit = Math.floor(diff/60000);
+  if(menit < 1) return 'Baru saja';
+  if(menit < 60) return `${menit} menit lalu`;
+  const jam = Math.floor(menit/60);
+  if(jam < 24) return `${jam} jam lalu`;
+  const hari = Math.floor(jam/24);
+  if(hari < 7) return `${hari} hari lalu`;
+  const d = new Date(ts);
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+function renderActivityLog(){
+  const wrap = document.getElementById('activityLogList');
+  if(!wrap) return;
+  let list = Object.keys(activityLog).map(id=>({id, ...activityLog[id]}));
+  list.sort((a,b)=> b.waktu - a.waktu);
+  list = list.slice(0, 50);
+  wrap.innerHTML = list.length ? list.map(l=>`
+    <div class="list-row">
+      <div>
+        <div class="l-title">${escapeHtml(l.aksi)}</div>
+        <div class="l-sub">${escapeHtml(l.admin)} · ${waktuRelatif(l.waktu)}</div>
+      </div>
+    </div>
+  `).join('') : `<div class="empty-note">Belum ada aktivitas tercatat.</div>`;
 }
 
 function populateDriverSelects(){
@@ -415,6 +462,7 @@ document.getElementById('btnAddDriver').addEventListener('click', ()=>{
     document.getElementById('newDriverName').value='';
     document.getElementById('newDriverPersen').value='';
     flash(document.getElementById('addDriverSuccess'));
+    logActivity(`Tambah driver: ${name} (${persen}%)`);
   });
 });
 
@@ -440,11 +488,17 @@ function renderDriverManage(){
 function updateDriverPersen(id, val){
   const persen = parseFloat(val);
   if(isNaN(persen)) return;
-  db.ref(`drivers/${id}/persen`).set(persen);
+  const nama = drivers[id] ? drivers[id].name : id;
+  db.ref(`drivers/${id}/persen`).set(persen).then(()=>{
+    logActivity(`Ubah persen potongan ${nama} jadi ${persen}%`);
+  });
 }
 function deleteDriver(id){
   if(!confirm('Hapus driver ini? Data orderan & setorannya TIDAK ikut terhapus otomatis.')) return;
-  db.ref(`drivers/${id}`).remove();
+  const nama = drivers[id] ? drivers[id].name : id;
+  db.ref(`drivers/${id}`).remove().then(()=>{
+    logActivity(`Hapus driver: ${nama}`);
+  });
 }
 
 /* ===== Input Orderan Harian ===== */
@@ -456,6 +510,8 @@ document.getElementById('btnAddOrder').addEventListener('click', ()=>{
   db.ref(`orders/${driverId}`).push({ tanggal, nominal }).then(()=>{
     document.getElementById('orderNominal').value='';
     flash(document.getElementById('addOrderSuccess'));
+    const nama = drivers[driverId] ? drivers[driverId].name : driverId;
+    logActivity(`Input orderan ${nama}: ${rupiah(nominal)} (${formatTgl(tanggal)})`);
   });
 });
 
@@ -485,7 +541,10 @@ function renderRecentOrders(){
 }
 function deleteOrder(driverId, orderId){
   if(!confirm('Hapus orderan ini?')) return;
-  db.ref(`orders/${driverId}/${orderId}`).remove();
+  const nama = drivers[driverId] ? drivers[driverId].name : driverId;
+  db.ref(`orders/${driverId}/${orderId}`).remove().then(()=>{
+    logActivity(`Hapus orderan: ${nama}`);
+  });
 }
 
 /* ===== Buat Setoran ===== */
@@ -531,6 +590,8 @@ document.getElementById('btnBuatSetoran').addEventListener('click', ()=>{
     dariTanggal: dari, sampaiTanggal: sampai, persen, totalKotor, totalBersih
   }).then(()=>{
     flash(document.getElementById('addSetoranSuccess'));
+    const nama = drivers[driverId] ? drivers[driverId].name : driverId;
+    logActivity(`Buat setoran ${nama}: ${rupiah(totalBersih)} (${persen}%, ${formatTgl(dari)}-${formatTgl(sampai)})`);
   });
 });
 
@@ -545,6 +606,7 @@ document.getElementById('btnAddCashflow').addEventListener('click', ()=>{
   db.ref('cashflowAdmin').push({ tipe, jumlah, tanggal, catatan, kategori }).then(()=>{
     document.getElementById('cfJumlah').value='';
     document.getElementById('cfCatatan').value='';
+    logActivity(`${tipe==='masuk'?'Catat pemasukan':'Catat pengeluaran'}: ${rupiah(jumlah)} (${kategori})`);
   });
 });
 
@@ -655,7 +717,9 @@ function updateCharts(list){
 }
 function deleteCashflow(id){
   if(!confirm('Hapus transaksi ini?')) return;
-  db.ref(`cashflowAdmin/${id}`).remove();
+  db.ref(`cashflowAdmin/${id}`).remove().then(()=>{
+    logActivity('Hapus transaksi cashflow');
+  });
 }
 
 /* ===== Kalkulator Potongan ===== */
@@ -694,6 +758,7 @@ document.getElementById('btnSaveSaldoAwal').addEventListener('click', ()=>{
   const tunai = parseFloat(document.getElementById('saldoTunai').value) || 0;
   db.ref('saldoAwal').set({ bri, seabank, tunai }).then(()=>{
     flash(document.getElementById('saveSaldoSuccess'));
+    logActivity(`Update saldo awal (BRI ${rupiah(bri)}, SeaBank ${rupiah(seabank)}, Tunai ${rupiah(tunai)})`);
   });
 });
 

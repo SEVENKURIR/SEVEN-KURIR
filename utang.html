@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Utang — Seven Kurir</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ====== LOGIN SCREEN ====== -->
+<div class="login-wrap" id="loginScreen">
+  <div class="login-card">
+    <div class="plate">7</div>
+    <h1>Login Utang</h1>
+    <p>Seven Kurir — Pencatatan Utang (khusus)</p>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="email@sevenkurir.com">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••••">
+    </div>
+    <div class="error-msg" id="loginError">Email atau password salah.</div>
+    <button class="btn btn-primary btn-block" id="btnDoLogin" style="margin-top:8px;">Masuk</button>
+  </div>
+</div>
+
+<!-- ====== PANEL UTANG (muncul setelah login) ====== -->
+<div id="utangPanel" style="display:none;">
+
+  <header class="topbar">
+    <a class="brand" href="utang.html">
+      <div class="plate">7</div>
+      <div>
+        <div class="brand-name">SEVEN KURIR</div>
+        <div class="brand-sub">Pencatatan Utang</div>
+      </div>
+    </a>
+    <div style="display:flex; gap:10px;">
+      <button class="theme-toggle" id="btnTheme" title="Ganti tema">🌙</button>
+      <button class="btn btn-danger btn-sm" id="btnLogout">Logout</button>
+    </div>
+  </header>
+
+  <section class="hero" style="padding-bottom:0;">
+    <div class="hero-eyebrow" id="loggedInAs">Masuk sebagai</div>
+    <h1 style="font-size:28px;">Catat & pantau utang.</h1>
+    <div class="stats-row" id="utangStats" style="margin-top:20px;"></div>
+  </section>
+
+  <section class="section">
+    <div class="grid-2">
+
+      <!-- ==== Tambah Utang ==== -->
+      <div class="card">
+        <div class="section-head"><h2>Tambah Utang</h2></div>
+        <div class="field">
+          <label>Nama Peminjam</label>
+          <input type="text" id="utNama" placeholder="Contoh: Budi">
+        </div>
+        <div class="field">
+          <label>Jumlah (Rp)</label>
+          <input type="number" id="utJumlah" placeholder="500000">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Tanggal Pinjam</label>
+            <input type="date" id="utTanggalPinjam">
+          </div>
+          <div class="field">
+            <label>Tanggal Rencana Bayar</label>
+            <input type="date" id="utTanggalBayar">
+          </div>
+        </div>
+        <div class="field">
+          <label>Catatan</label>
+          <input type="text" id="utCatatan" placeholder="Opsional">
+        </div>
+        <div class="field">
+          <label>Foto Bukti (opsional)</label>
+          <input type="file" id="utFoto" accept="image/*">
+        </div>
+        <button class="btn btn-primary btn-block" id="btnAddUtang">+ Simpan Utang</button>
+        <div class="success-msg" id="addUtangSuccess">Utang tersimpan.</div>
+        <div class="error-msg" id="addUtangError">Gagal menyimpan. Coba lagi.</div>
+      </div>
+
+      <!-- ==== Daftar Utang ==== -->
+      <div class="card">
+        <div class="section-head"><h2>Daftar Utang</h2></div>
+        <div class="filter-bar" style="margin-bottom:12px;">
+          <select id="filterStatusUtang">
+            <option value="belum">Belum Lunas</option>
+            <option value="lunas">Sudah Lunas</option>
+            <option value="semua">Semua</option>
+          </select>
+        </div>
+        <div id="utangList" style="max-height:460px; overflow-y:auto;"><div class="empty-note">Memuat...</div></div>
+      </div>
+
+    </div>
+  </section>
+
+  <footer>Seven Kurir · Pencatatan Utang · data tersimpan di Firebase</footer>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+// Inisialisasi Storage khusus di halaman ini (halaman lain gak butuh ini)
+const storage = firebase.storage();
+
+function rupiah(n){ return 'Rp' + Math.round(n||0).toLocaleString('id-ID'); }
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function formatTgl(iso){ if(!iso) return '-'; const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; }
+function flash(el){ el.style.display='block'; setTimeout(()=> el.style.display='none', 2500); }
+
+let utangData = {};
+
+/* ===== AUTH ===== */
+auth.onAuthStateChanged(user=>{
+  if(user){
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('utangPanel').style.display='block';
+    document.getElementById('loggedInAs').textContent = 'Masuk sebagai ' + user.email;
+    attachListeners();
+  } else {
+    document.getElementById('loginScreen').style.display='flex';
+    document.getElementById('utangPanel').style.display='none';
+  }
+});
+
+document.getElementById('btnDoLogin').addEventListener('click', ()=>{
+  const email = document.getElementById('loginEmail').value.trim();
+  const pw = document.getElementById('loginPassword').value;
+  document.getElementById('loginError').style.display='none';
+  auth.signInWithEmailAndPassword(email, pw).catch(err=>{
+    document.getElementById('loginError').style.display='block';
+  });
+});
+document.getElementById('loginPassword').addEventListener('keydown', e=>{
+  if(e.key==='Enter') document.getElementById('btnDoLogin').click();
+});
+document.getElementById('btnLogout').addEventListener('click', ()=> auth.signOut());
+
+/* ===== LISTENERS ===== */
+function attachListeners(){
+  document.getElementById('utTanggalPinjam').value = todayStr();
+  document.getElementById('filterStatusUtang').addEventListener('change', renderUtang);
+
+  db.ref('utang').on('value', snap=>{
+    utangData = snap.val() || {};
+    renderUtang();
+  });
+}
+
+/* ===== Tambah Utang ===== */
+document.getElementById('btnAddUtang').addEventListener('click', async ()=>{
+  const nama = document.getElementById('utNama').value.trim();
+  const jumlah = parseFloat(document.getElementById('utJumlah').value);
+  const tanggalPinjam = document.getElementById('utTanggalPinjam').value;
+  const tanggalBayar = document.getElementById('utTanggalBayar').value;
+  const catatan = document.getElementById('utCatatan').value.trim();
+  const fotoFile = document.getElementById('utFoto').files[0];
+  const btn = document.getElementById('btnAddUtang');
+
+  if(!nama || !jumlah || !tanggalPinjam) return;
+
+  document.getElementById('addUtangError').style.display='none';
+  btn.disabled = true;
+  btn.textContent = 'Menyimpan...';
+
+  try{
+    const newRef = db.ref('utang').push();
+    let fotoUrl = null;
+
+    if(fotoFile){
+      const path = `utang/${newRef.key}/${fotoFile.name}`;
+      const storageRef = storage.ref(path);
+      await storageRef.put(fotoFile);
+      fotoUrl = await storageRef.getDownloadURL();
+    }
+
+    await newRef.set({
+      nama, jumlah, tanggalPinjam, tanggalBayar: tanggalBayar || null,
+      catatan: catatan || null, fotoUrl, lunas: false, dibuat: Date.now()
+    });
+
+    document.getElementById('utNama').value='';
+    document.getElementById('utJumlah').value='';
+    document.getElementById('utTanggalBayar').value='';
+    document.getElementById('utCatatan').value='';
+    document.getElementById('utFoto').value='';
+    flash(document.getElementById('addUtangSuccess'));
+  }catch(err){
+    console.error(err);
+    document.getElementById('addUtangError').textContent = 'Gagal menyimpan: ' + err.message;
+    document.getElementById('addUtangError').style.display='block';
+  }finally{
+    btn.disabled = false;
+    btn.textContent = '+ Simpan Utang';
+  }
+});
+
+function toggleLunas(id, current){
+  db.ref(`utang/${id}/lunas`).set(!current);
+}
+function deleteUtang(id, fotoUrl){
+  if(!confirm('Hapus catatan utang ini?')) return;
+  db.ref(`utang/${id}`).remove();
+  if(fotoUrl){
+    try{ storage.refFromURL(fotoUrl).delete().catch(()=>{}); }catch(e){}
+  }
+}
+
+function renderUtang(){
+  const wrap = document.getElementById('utangList');
+  const filter = document.getElementById('filterStatusUtang').value;
+  let list = Object.keys(utangData).map(id=>({id, ...utangData[id]}));
+
+  if(filter === 'belum') list = list.filter(u=>!u.lunas);
+  else if(filter === 'lunas') list = list.filter(u=>u.lunas);
+
+  list.sort((a,b)=> (b.dibuat||0) - (a.dibuat||0));
+
+  let totalBelumLunas = 0;
+  Object.values(utangData).forEach(u=>{ if(!u.lunas) totalBelumLunas += Number(u.jumlah||0); });
+  document.getElementById('utangStats').innerHTML = `
+    <div class="stat-card"><div class="label">Total Belum Lunas</div><div class="value orange mono">${rupiah(totalBelumLunas)}</div></div>
+    <div class="stat-card"><div class="label">Jumlah Catatan</div><div class="value">${Object.keys(utangData).length}</div></div>
+  `;
+
+  wrap.innerHTML = list.length ? list.map(u=>`
+    <div class="list-row" style="align-items:flex-start;">
+      <div style="flex:1;">
+        <div class="l-title">${escapeHtml(u.nama)} ${u.lunas ? '<span class="badge" style="background:#E6F7EC; color:var(--green);">Lunas</span>' : ''}</div>
+        <div class="l-sub">Pinjam ${formatTgl(u.tanggalPinjam)}${u.tanggalBayar ? ' · Rencana bayar ' + formatTgl(u.tanggalBayar) : ''}</div>
+        ${u.catatan ? `<div class="l-sub">${escapeHtml(u.catatan)}</div>` : ''}
+        ${u.fotoUrl ? `<a href="${u.fotoUrl}" target="_blank" style="font-size:11.5px; color:var(--yellow-deep); font-weight:600;">Lihat foto bukti →</a>` : ''}
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+        <div class="l-amount mono">${rupiah(u.jumlah)}</div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-outline btn-sm" onclick="toggleLunas('${u.id}', ${!!u.lunas})">${u.lunas ? 'Batal Lunas' : 'Tandai Lunas'}</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteUtang('${u.id}', ${u.fotoUrl ? `'${u.fotoUrl}'` : 'null'})">✕</button>
+        </div>
+      </div>
+    </div>
+  `).join('') : `<div class="empty-note">Belum ada catatan utang.</div>`;
+}
+
+/* ===== Dark Mode ===== */
+function initTheme(){
+  const saved = localStorage.getItem('sk_theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('btnTheme').textContent = saved === 'dark' ? '☀️' : '🌙';
+}
+document.getElementById('btnTheme').addEventListener('click', ()=>{
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('sk_theme', next);
+  document.getElementById('btnTheme').textContent = next === 'dark' ? '☀️' : '🌙';
+});
+initTheme();
+</script>
+</body>
+</html>
