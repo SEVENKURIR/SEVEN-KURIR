@@ -66,23 +66,13 @@
           <label>Jumlah (Rp)</label>
           <input type="number" id="utJumlah" placeholder="500000">
         </div>
-        <div class="field-row">
-          <div class="field">
-            <label>Tanggal Pinjam</label>
-            <input type="date" id="utTanggalPinjam">
-          </div>
-          <div class="field">
-            <label>Tanggal Rencana Bayar</label>
-            <input type="date" id="utTanggalBayar">
-          </div>
+        <div class="field">
+          <label>Tanggal Pinjam</label>
+          <input type="date" id="utTanggalPinjam">
         </div>
         <div class="field">
           <label>Catatan</label>
           <input type="text" id="utCatatan" placeholder="Opsional">
-        </div>
-        <div class="field">
-          <label>Foto Bukti (opsional)</label>
-          <input type="file" id="utFoto" accept="image/*">
         </div>
         <button class="btn btn-primary btn-block" id="btnAddUtang">+ Simpan Utang</button>
         <div class="success-msg" id="addUtangSuccess">Utang tersimpan.</div>
@@ -105,6 +95,82 @@
     </div>
   </section>
 
+  <!-- ==== Saldo Awal ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head"><h2>Saldo Awal</h2></div>
+      <div class="section-desc">Isi modal awal lu sebelum mulai pake sistem ini — biar Saldo Real ke bawah ngitung dari kondisi asli, bukan dari nol.</div>
+      <div class="field-row" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="field">
+          <label>Saldo ATM BRI</label>
+          <input type="number" id="saldoBri" placeholder="0">
+        </div>
+        <div class="field">
+          <label>Saldo SeaBank</label>
+          <input type="number" id="saldoSeabank" placeholder="0">
+        </div>
+        <div class="field">
+          <label>Uang Tunai Dipegang</label>
+          <input type="number" id="saldoTunai" placeholder="0">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" id="btnSaveSaldoAwal">Simpan Saldo Awal</button>
+      <div class="success-msg" id="saveSaldoSuccess">Saldo awal tersimpan.</div>
+    </div>
+  </section>
+
+  <!-- ==== Cashflow Admin ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head"><h2>Cashflow Pribadi Admin</h2></div>
+      <div class="section-desc">Bagian ini cuma keliatan buat yang login di sini — nggak nyambung ke data driver.</div>
+      <div class="stats-row" id="cfStats" style="margin-bottom:18px;"></div>
+
+      <div class="grid-2" style="margin-bottom:20px;">
+        <div class="card" style="box-shadow:none; border:1px solid var(--line);">
+          <div class="section-desc" style="margin-top:0; margin-bottom:10px;">Pemasukan vs Pengeluaran (6 bulan terakhir)</div>
+          <canvas id="barChart" height="220"></canvas>
+        </div>
+        <div class="card" style="box-shadow:none; border:1px solid var(--line);">
+          <div class="section-desc" style="margin-top:0; margin-bottom:10px;">Breakdown Pengeluaran per Kategori (bulan ini)</div>
+          <canvas id="donutChart" height="220"></canvas>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Tipe</label>
+          <select id="cfTipe">
+            <option value="masuk">Uang Masuk</option>
+            <option value="keluar" selected>Uang Keluar</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Jumlah (Rp)</label>
+          <input type="number" id="cfJumlah" placeholder="500000">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Kategori</label>
+          <select id="cfKategori"></select>
+        </div>
+        <div class="field">
+          <label>Tanggal</label>
+          <input type="date" id="cfTanggal">
+        </div>
+      </div>
+      <div class="field">
+        <label>Catatan</label>
+        <input type="text" id="cfCatatan" placeholder="Contoh: Beli bensin">
+      </div>
+      <button class="btn btn-primary btn-block" id="btnAddCashflow" style="margin-bottom:18px;">+ Catat Transaksi</button>
+      <div id="cashflowList"></div>
+    </div>
+  </section>
+
+  <input type="file" id="lunasFotoInput" accept="image/*" style="display:none;">
+
   <footer>Seven Kurir · Pencatatan Utang · data tersimpan di Firebase</footer>
 </div>
 
@@ -112,22 +178,55 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="firebase-config.js"></script>
 <script>
-// Inisialisasi Storage khusus di halaman ini (halaman lain gak butuh ini)
+// Inisialisasi Storage khusus di halaman ini
 const storage = firebase.storage();
 
+// GANTI dengan User UID akun admin ke-2 dari Firebase Console -> Authentication -> Users
+const UTANG_ADMIN_UID = 'GANTI_DENGAN_UID_AKUN_UTANG';
+
 function rupiah(n){ return 'Rp' + Math.round(n||0).toLocaleString('id-ID'); }
+const BULAN_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 function formatTgl(iso){ if(!iso) return '-'; const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; }
 function flash(el){ el.style.display='block'; setTimeout(()=> el.style.display='none', 2500); }
 
 let utangData = {};
+let cashflow = {};
+let saldoAwal = { bri: 0, seabank: 0, tunai: 0 };
+let barChartInstance = null;
+let donutChartInstance = null;
+let lunasTargetId = null;
+
+/* ===== Kategori (buat cashflow) ===== */
+const KATEGORI_KELUAR = ['Makan & Minuman','Transportasi','Kebutuhan Pribadi','Operasional Motor','Tagihan','Kesehatan','Lainnya'];
+const KATEGORI_MASUK = ['Setoran Driver Masuk','Pemasukan Lain'];
+const KATEGORI_WARNA = {
+  'Makan & Minuman':'#FFC629', 'Transportasi':'#FF7A45', 'Kebutuhan Pribadi':'#00A651',
+  'Operasional Motor':'#3B82F6', 'Tagihan':'#A855F7', 'Kesehatan':'#EC4899', 'Lainnya':'#6B7280'
+};
+function populateKategoriSelect(){
+  const tipe = document.getElementById('cfTipe').value;
+  const sel = document.getElementById('cfKategori');
+  const list = tipe === 'masuk' ? KATEGORI_MASUK : KATEGORI_KELUAR;
+  sel.innerHTML = list.map(k=>`<option value="${k}">${k}</option>`).join('');
+}
+document.getElementById('cfTipe').addEventListener('change', populateKategoriSelect);
 
 /* ===== AUTH ===== */
 auth.onAuthStateChanged(user=>{
   if(user){
+    if(UTANG_ADMIN_UID !== 'GANTI_DENGAN_UID_AKUN_UTANG' && user.uid !== UTANG_ADMIN_UID){
+      // Login, tapi bukan akun yang punya akses ke halaman ini
+      document.getElementById('loginScreen').style.display='flex';
+      document.getElementById('utangPanel').style.display='none';
+      document.getElementById('loginError').textContent = `Akun ${user.email} gak punya akses ke halaman ini. Logout dulu, terus login pake akun utang.`;
+      document.getElementById('loginError').style.display='block';
+      return;
+    }
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('utangPanel').style.display='block';
     document.getElementById('loggedInAs').textContent = 'Masuk sebagai ' + user.email;
@@ -143,6 +242,7 @@ document.getElementById('btnDoLogin').addEventListener('click', ()=>{
   const pw = document.getElementById('loginPassword').value;
   document.getElementById('loginError').style.display='none';
   auth.signInWithEmailAndPassword(email, pw).catch(err=>{
+    document.getElementById('loginError').textContent = 'Email atau password salah.';
     document.getElementById('loginError').style.display='block';
   });
 });
@@ -154,11 +254,24 @@ document.getElementById('btnLogout').addEventListener('click', ()=> auth.signOut
 /* ===== LISTENERS ===== */
 function attachListeners(){
   document.getElementById('utTanggalPinjam').value = todayStr();
+  document.getElementById('cfTanggal').value = todayStr();
   document.getElementById('filterStatusUtang').addEventListener('change', renderUtang);
+  populateKategoriSelect();
 
   db.ref('utang').on('value', snap=>{
     utangData = snap.val() || {};
     renderUtang();
+  });
+  db.ref('cashflowAdmin').on('value', snap=>{
+    cashflow = snap.val() || {};
+    renderCashflow();
+  });
+  db.ref('saldoAwal').on('value', snap=>{
+    saldoAwal = snap.val() || { bri:0, seabank:0, tunai:0 };
+    document.getElementById('saldoBri').value = saldoAwal.bri || '';
+    document.getElementById('saldoSeabank').value = saldoAwal.seabank || '';
+    document.getElementById('saldoTunai').value = saldoAwal.tunai || '';
+    renderCashflow();
   });
 }
 
@@ -167,9 +280,7 @@ document.getElementById('btnAddUtang').addEventListener('click', async ()=>{
   const nama = document.getElementById('utNama').value.trim();
   const jumlah = parseFloat(document.getElementById('utJumlah').value);
   const tanggalPinjam = document.getElementById('utTanggalPinjam').value;
-  const tanggalBayar = document.getElementById('utTanggalBayar').value;
   const catatan = document.getElementById('utCatatan').value.trim();
-  const fotoFile = document.getElementById('utFoto').files[0];
   const btn = document.getElementById('btnAddUtang');
 
   if(!nama || !jumlah || !tanggalPinjam) return;
@@ -179,26 +290,14 @@ document.getElementById('btnAddUtang').addEventListener('click', async ()=>{
   btn.textContent = 'Menyimpan...';
 
   try{
-    const newRef = db.ref('utang').push();
-    let fotoUrl = null;
-
-    if(fotoFile){
-      const path = `utang/${newRef.key}/${fotoFile.name}`;
-      const storageRef = storage.ref(path);
-      await storageRef.put(fotoFile);
-      fotoUrl = await storageRef.getDownloadURL();
-    }
-
-    await newRef.set({
-      nama, jumlah, tanggalPinjam, tanggalBayar: tanggalBayar || null,
-      catatan: catatan || null, fotoUrl, lunas: false, dibuat: Date.now()
+    await db.ref('utang').push({
+      nama, jumlah, tanggalPinjam,
+      catatan: catatan || null, fotoUrl: null, tanggalBayar: null, lunas: false, dibuat: Date.now()
     });
 
     document.getElementById('utNama').value='';
     document.getElementById('utJumlah').value='';
-    document.getElementById('utTanggalBayar').value='';
     document.getElementById('utCatatan').value='';
-    document.getElementById('utFoto').value='';
     flash(document.getElementById('addUtangSuccess'));
   }catch(err){
     console.error(err);
@@ -210,8 +309,30 @@ document.getElementById('btnAddUtang').addEventListener('click', async ()=>{
   }
 });
 
-function toggleLunas(id, current){
-  db.ref(`utang/${id}/lunas`).set(!current);
+/* ===== Tandai Lunas (upload bukti pas lunas, bukan pas pinjam) ===== */
+function mintaLunas(id){
+  lunasTargetId = id;
+  document.getElementById('lunasFotoInput').value = '';
+  document.getElementById('lunasFotoInput').click();
+}
+document.getElementById('lunasFotoInput').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  const id = lunasTargetId;
+  if(!file || !id) return;
+  try{
+    const path = `utang/${id}/${file.name}`;
+    const storageRef = storage.ref(path);
+    await storageRef.put(file);
+    const fotoUrl = await storageRef.getDownloadURL();
+    await db.ref(`utang/${id}`).update({ lunas: true, fotoUrl, tanggalBayar: todayStr() });
+  }catch(err){
+    console.error(err);
+    alert('Gagal upload bukti: ' + err.message);
+  }
+});
+function batalLunas(id){
+  if(!confirm('Batalkan status lunas utang ini?')) return;
+  db.ref(`utang/${id}`).update({ lunas: false });
 }
 function deleteUtang(id, fotoUrl){
   if(!confirm('Hapus catatan utang ini?')) return;
@@ -242,20 +363,153 @@ function renderUtang(){
     <div class="list-row" style="align-items:flex-start;">
       <div style="flex:1;">
         <div class="l-title">${escapeHtml(u.nama)} ${u.lunas ? '<span class="badge" style="background:#E6F7EC; color:var(--green);">Lunas</span>' : ''}</div>
-        <div class="l-sub">Pinjam ${formatTgl(u.tanggalPinjam)}${u.tanggalBayar ? ' · Rencana bayar ' + formatTgl(u.tanggalBayar) : ''}</div>
+        <div class="l-sub">Pinjam ${formatTgl(u.tanggalPinjam)}${u.lunas && u.tanggalBayar ? ' · Dibayar ' + formatTgl(u.tanggalBayar) : ''}</div>
         ${u.catatan ? `<div class="l-sub">${escapeHtml(u.catatan)}</div>` : ''}
-        ${u.fotoUrl ? `<a href="${u.fotoUrl}" target="_blank" style="font-size:11.5px; color:var(--yellow-deep); font-weight:600;">Lihat foto bukti →</a>` : ''}
+        ${u.fotoUrl ? `<a href="${u.fotoUrl}" target="_blank" style="font-size:11.5px; color:var(--yellow-deep); font-weight:600;">Lihat bukti bayar →</a>` : ''}
       </div>
       <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
         <div class="l-amount mono">${rupiah(u.jumlah)}</div>
         <div style="display:flex; gap:6px;">
-          <button class="btn btn-outline btn-sm" onclick="toggleLunas('${u.id}', ${!!u.lunas})">${u.lunas ? 'Batal Lunas' : 'Tandai Lunas'}</button>
+          ${u.lunas
+            ? `<button class="btn btn-outline btn-sm" onclick="batalLunas('${u.id}')">Batal Lunas</button>`
+            : `<button class="btn btn-outline btn-sm" onclick="mintaLunas('${u.id}')">Tandai Lunas</button>`}
           <button class="btn btn-danger btn-sm" onclick="deleteUtang('${u.id}', ${u.fotoUrl ? `'${u.fotoUrl}'` : 'null'})">✕</button>
         </div>
       </div>
     </div>
   `).join('') : `<div class="empty-note">Belum ada catatan utang.</div>`;
 }
+
+/* ===== Cashflow Admin ===== */
+document.getElementById('btnAddCashflow').addEventListener('click', ()=>{
+  const tipe = document.getElementById('cfTipe').value;
+  const jumlah = parseFloat(document.getElementById('cfJumlah').value);
+  const tanggal = document.getElementById('cfTanggal').value;
+  const catatan = document.getElementById('cfCatatan').value.trim();
+  const kategori = document.getElementById('cfKategori').value;
+  if(!jumlah || !tanggal) return;
+  db.ref('cashflowAdmin').push({ tipe, jumlah, tanggal, catatan, kategori }).then(()=>{
+    document.getElementById('cfJumlah').value='';
+    document.getElementById('cfCatatan').value='';
+  });
+});
+
+function renderCashflow(){
+  const list = Object.keys(cashflow).map(id=>({id, ...cashflow[id]})).sort((a,b)=> b.tanggal.localeCompare(a.tanggal));
+  let masuk=0, keluar=0;
+  list.forEach(c=> c.tipe==='masuk' ? masuk+=Number(c.jumlah) : keluar+=Number(c.jumlah));
+  const saldoAwalTotal = (saldoAwal.bri||0) + (saldoAwal.seabank||0) + (saldoAwal.tunai||0);
+  const saldoReal = saldoAwalTotal + masuk - keluar;
+
+  const now = new Date();
+  const prefixBulanIni = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const prevDate = new Date(now.getFullYear(), now.getMonth()-1, 1);
+  const prefixBulanLalu = `${prevDate.getFullYear()}-${String(prevDate.getMonth()+1).padStart(2,'0')}`;
+  const keluarBulanIni = list.filter(c=>c.tipe==='keluar' && c.tanggal.startsWith(prefixBulanIni)).reduce((s,c)=>s+Number(c.jumlah),0);
+  const keluarBulanLalu = list.filter(c=>c.tipe==='keluar' && c.tanggal.startsWith(prefixBulanLalu)).reduce((s,c)=>s+Number(c.jumlah),0);
+  let compareHtml = '';
+  if(keluarBulanLalu > 0){
+    const pct = Math.round(((keluarBulanIni - keluarBulanLalu) / keluarBulanLalu) * 100);
+    const naik = pct >= 0;
+    compareHtml = `<div class="compare-note ${naik?'up':'down'}">${naik?'▲':'▼'} ${Math.abs(pct)}% dari bulan lalu</div>`;
+  }
+
+  document.getElementById('cfStats').innerHTML = `
+    <div class="stat-card"><div class="label">Uang Masuk</div><div class="value hivis mono">${rupiah(masuk)}</div></div>
+    <div class="stat-card"><div class="label">Uang Keluar</div><div class="value orange mono">${rupiah(keluar)}</div>${compareHtml}</div>
+    <div class="stat-card"><div class="label">Saldo Real (+ saldo awal)</div><div class="value mono">${rupiah(saldoReal)}</div></div>
+  `;
+  const wrap = document.getElementById('cashflowList');
+  wrap.innerHTML = list.length ? list.map(c=>`
+    <div class="list-row">
+      <div>
+        <div class="l-title">${escapeHtml(c.catatan || (c.tipe==='masuk'?'Pemasukan':'Pengeluaran'))}</div>
+        <div class="l-sub">${formatTgl(c.tanggal)} · ${escapeHtml(c.kategori || 'Lainnya')}</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div class="l-amount ${c.tipe}">${c.tipe==='masuk'?'+':'-'}${rupiah(c.jumlah)}</div>
+        <button class="btn btn-danger btn-sm" onclick="deleteCashflow('${c.id}')">✕</button>
+      </div>
+    </div>
+  `).join('') : `<div class="empty-note">Belum ada transaksi.</div>`;
+
+  updateCharts(list);
+}
+
+/* ===== Charts ===== */
+function updateCharts(list){
+  const now = new Date();
+  const bulanLabels = [];
+  const bulanKeys = [];
+  for(let i=5; i>=0; i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    bulanKeys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    bulanLabels.push(BULAN_SHORT[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2));
+  }
+  const dataMasuk = bulanKeys.map(key => list.filter(c=>c.tipe==='masuk' && c.tanggal.startsWith(key)).reduce((s,c)=>s+Number(c.jumlah),0));
+  const dataKeluar = bulanKeys.map(key => list.filter(c=>c.tipe==='keluar' && c.tanggal.startsWith(key)).reduce((s,c)=>s+Number(c.jumlah),0));
+
+  const barCtx = document.getElementById('barChart').getContext('2d');
+  if(barChartInstance) barChartInstance.destroy();
+  barChartInstance = new Chart(barCtx, {
+    type: 'bar',
+    data: {
+      labels: bulanLabels,
+      datasets: [
+        { label: 'Masuk', data: dataMasuk, backgroundColor: '#00A651', borderRadius: 6 },
+        { label: 'Keluar', data: dataKeluar, backgroundColor: '#FF7A45', borderRadius: 6 }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom', labels:{ boxWidth:10, font:{size:11} } } },
+      scales: { y: { ticks: { callback: v => 'Rp' + (v/1000) + 'rb' } } }
+    }
+  });
+
+  const prefixBulanIni = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const keluarBulanIni = list.filter(c=>c.tipe==='keluar' && c.tanggal.startsWith(prefixBulanIni));
+  const perKategori = {};
+  keluarBulanIni.forEach(c=>{
+    const k = c.kategori || 'Lainnya';
+    perKategori[k] = (perKategori[k]||0) + Number(c.jumlah);
+  });
+  const labels = Object.keys(perKategori);
+  const values = labels.map(k=>perKategori[k]);
+  const colors = labels.map(k=> KATEGORI_WARNA[k] || '#6B7280');
+
+  const donutCtx = document.getElementById('donutChart').getContext('2d');
+  if(donutChartInstance) donutChartInstance.destroy();
+  donutChartInstance = new Chart(donutCtx, {
+    type: 'doughnut',
+    data: {
+      labels: labels.length ? labels : ['Belum ada data'],
+      datasets: [{
+        data: values.length ? values : [1],
+        backgroundColor: values.length ? colors : ['#EDEEF1'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom', labels:{ boxWidth:10, font:{size:10.5} } } }
+    }
+  });
+}
+function deleteCashflow(id){
+  if(!confirm('Hapus transaksi ini?')) return;
+  db.ref(`cashflowAdmin/${id}`).remove();
+}
+
+/* ===== Saldo Awal ===== */
+document.getElementById('btnSaveSaldoAwal').addEventListener('click', ()=>{
+  const bri = parseFloat(document.getElementById('saldoBri').value) || 0;
+  const seabank = parseFloat(document.getElementById('saldoSeabank').value) || 0;
+  const tunai = parseFloat(document.getElementById('saldoTunai').value) || 0;
+  db.ref('saldoAwal').set({ bri, seabank, tunai }).then(()=>{
+    flash(document.getElementById('saveSaldoSuccess'));
+  });
+});
 
 /* ===== Dark Mode ===== */
 function initTheme(){

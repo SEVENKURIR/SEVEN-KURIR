@@ -30,6 +30,10 @@
   <div class="stats-row" id="statsRow"></div>
 </section>
 
+<section class="section" style="padding-bottom:0;">
+  <div class="spotlight-wrap" id="topDriverSpotlight"></div>
+</section>
+
 <section class="section">
   <div class="section-head">
     <h2>Semua Driver</h2>
@@ -127,6 +131,8 @@ function render(){
     <div class="stat-card"><div class="label">Total Tahun ini</div><div class="value orange mono">${rupiah(totalTahunIni)}</div></div>
   `;
 
+  renderTopDriverSpotlight(driverIds, bulan, tahun);
+
   const wrap = document.getElementById('ticketsWrap');
   if(driverIds.length === 0){
     wrap.innerHTML = `<div class="empty-note">Belum ada driver terdaftar.</div>`;
@@ -176,6 +182,30 @@ function render(){
       </div>
     </div>`;
   }).join('');
+}
+
+function renderTopDriverSpotlight(driverIds, bulan, tahun){
+  const wrap = document.getElementById('topDriverSpotlight');
+  if(!wrap) return;
+  if(!driverIds.length){ wrap.innerHTML = ''; return; }
+
+  const ranking = driverIds.map(id=>({ id, name: drivers[id].name, total: sumBulan(id, bulan, tahun) }))
+    .filter(r=>r.total > 0)
+    .sort((a,b)=> b.total - a.total);
+
+  if(!ranking.length){ wrap.innerHTML = ''; return; }
+  const top = ranking[0];
+
+  wrap.innerHTML = `
+    <div class="spotlight-card">
+      <div class="spotlight-glow"></div>
+      <div class="spotlight-crown">👑</div>
+      <div class="spotlight-eyebrow">TOP DRIVER · ${BULAN_NAMES[bulan-1].toUpperCase()} ${tahun}</div>
+      <div class="spotlight-name">${escapeHtml(top.name)}</div>
+      <div class="spotlight-amount">${rupiah(top.total)}</div>
+      <div class="spotlight-sub">Pendapatan tertinggi bulan ini di Seven Kurir</div>
+    </div>
+  `;
 }
 
 function formatTgl(iso){
