@@ -12,13 +12,16 @@
 
 <header class="topbar">
   <a class="brand" href="index.html">
-    <img src="LOGO SEVEN KURIR.png" alt="Seven Kurir" class="plate">
+    <div class="plate">7</div>
     <div>
       <div class="brand-name">SEVEN KURIR</div>
       <div class="brand-sub">Dashboard Pendapatan Driver</div>
     </div>
   </a>
-  <a href="admin.html" class="btn btn-outline btn-sm">Admin</a>
+  <div style="display:flex; gap:10px; align-items:center;">
+    <button class="theme-toggle" id="btnTheme" title="Ganti tema">🌙</button>
+    <a href="admin.html" class="btn btn-outline btn-sm">Admin</a>
+  </div>
 </header>
 
 <section class="hero">
@@ -185,6 +188,10 @@ function toggleDriver(id){
   openDriverId = (openDriverId === id) ? null : id;
   render();
 }
+function setTab(id, tab){
+  activeTab[id] = tab;
+  render();
+}
 
 // ==== Firebase real-time listeners ====
 db.ref('drivers').on('value', snap=>{ drivers = snap.val() || {}; render(); });
@@ -193,6 +200,21 @@ db.ref('setoran').on('value', snap=>{ setoranData = snap.val() || {}; render(); 
 
 initFilters();
 render();
+
+/* ===== Dark Mode ===== */
+function initTheme(){
+  const saved = localStorage.getItem('sk_theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('btnTheme').textContent = saved === 'dark' ? '☀️' : '🌙';
+}
+document.getElementById('btnTheme').addEventListener('click', ()=>{
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('sk_theme', next);
+  document.getElementById('btnTheme').textContent = next === 'dark' ? '☀️' : '🌙';
+});
+initTheme();
 </script>
 </body>
 </html>

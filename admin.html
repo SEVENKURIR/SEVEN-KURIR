@@ -42,6 +42,7 @@
       </div>
     </a>
     <div style="display:flex; gap:10px;">
+      <button class="theme-toggle" id="btnTheme" title="Ganti tema">🌙</button>
       <a href="index.html" class="btn btn-outline btn-sm">Lihat Dashboard</a>
       <button class="btn btn-danger btn-sm" id="btnLogout">Logout</button>
     </div>
@@ -156,6 +157,30 @@
     </div>
   </section>
 
+  <!-- ==== Saldo Awal ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head"><h2>Saldo Awal</h2></div>
+      <div class="section-desc">Isi modal awal lu sebelum mulai pake sistem ini — biar Saldo Real ke bawah ngitung dari kondisi asli, bukan dari nol.</div>
+      <div class="field-row" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="field">
+          <label>Saldo ATM BRI</label>
+          <input type="number" id="saldoBri" placeholder="0">
+        </div>
+        <div class="field">
+          <label>Saldo SeaBank</label>
+          <input type="number" id="saldoSeabank" placeholder="0">
+        </div>
+        <div class="field">
+          <label>Uang Tunai Dipegang</label>
+          <input type="number" id="saldoTunai" placeholder="0">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" id="btnSaveSaldoAwal">Simpan Saldo Awal</button>
+      <div class="success-msg" id="saveSaldoSuccess">Saldo awal tersimpan.</div>
+    </div>
+  </section>
+
   <!-- ==== Cashflow Admin ==== -->
   <section class="section" style="padding-top:0;">
     <div class="card">
@@ -212,6 +237,20 @@
     </div>
   </section>
 
+  <!-- ==== Top Pendapatan ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head">
+        <h2>Top Pendapatan Driver</h2>
+        <div class="filter-bar">
+          <select id="topBulan"><option value="">Sepanjang Tahun</option></select>
+          <select id="topTahun"></select>
+        </div>
+      </div>
+      <div id="topPendapatanList"><div class="empty-note">Memuat...</div></div>
+    </div>
+  </section>
+
   <footer>Seven Kurir · Panel Admin · data tersimpan di Firebase</footer>
 </div>
 
@@ -231,6 +270,7 @@ function flash(el){ el.style.display='block'; setTimeout(()=> el.style.display='
 let drivers = {};
 let orders = {};
 let cashflow = {};
+let saldoAwal = { bri: 0, seabank: 0, tunai: 0 };
 let barChartInstance = null;
 let donutChartInstance = null;
 
@@ -339,6 +379,7 @@ function attachListeners(){
   document.getElementById('cfTanggal').value = todayStr();
   document.getElementById('setoranSampai').value = todayStr();
   populateKategoriSelect();
+  initTopFilters();
 
   db.ref('drivers').on('value', snap=>{
     drivers = snap.val() || {};
@@ -350,9 +391,17 @@ function attachListeners(){
     orders = snap.val() || {};
     renderRecentOrders();
     updateSetoranPreview();
+    renderTopPendapatan();
   });
   db.ref('cashflowAdmin').on('value', snap=>{
     cashflow = snap.val() || {};
+    renderCashflow();
+  });
+  db.ref('saldoAwal').on('value', snap=>{
+    saldoAwal = snap.val() || { bri:0, seabank:0, tunai:0 };
+    document.getElementById('saldoBri').value = saldoAwal.bri || '';
+    document.getElementById('saldoSeabank').value = saldoAwal.seabank || '';
+    document.getElementById('saldoTunai').value = saldoAwal.tunai || '';
     renderCashflow();
   });
 }
@@ -514,10 +563,27 @@ function renderCashflow(){
   const list = Object.keys(cashflow).map(id=>({id, ...cashflow[id]})).sort((a,b)=> b.tanggal.localeCompare(a.tanggal));
   let masuk=0, keluar=0;
   list.forEach(c=> c.tipe==='masuk' ? masuk+=Number(c.jumlah) : keluar+=Number(c.jumlah));
+  const saldoAwalTotal = (saldoAwal.bri||0) + (saldoAwal.seabank||0) + (saldoAwal.tunai||0);
+  const saldoReal = saldoAwalTotal + masuk - keluar;
+
+  // perbandingan pengeluaran bulan ini vs bulan lalu
+  const now = new Date();
+  const prefixBulanIni = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const prevDate = new Date(now.getFullYear(), now.getMonth()-1, 1);
+  const prefixBulanLalu = `${prevDate.getFullYear()}-${String(prevDate.getMonth()+1).padStart(2,'0')}`;
+  const keluarBulanIni = list.filter(c=>c.tipe==='keluar' && c.tanggal.startsWith(prefixBulanIni)).reduce((s,c)=>s+Number(c.jumlah),0);
+  const keluarBulanLalu = list.filter(c=>c.tipe==='keluar' && c.tanggal.startsWith(prefixBulanLalu)).reduce((s,c)=>s+Number(c.jumlah),0);
+  let compareHtml = '';
+  if(keluarBulanLalu > 0){
+    const pct = Math.round(((keluarBulanIni - keluarBulanLalu) / keluarBulanLalu) * 100);
+    const naik = pct >= 0;
+    compareHtml = `<div class="compare-note ${naik?'up':'down'}">${naik?'▲':'▼'} ${Math.abs(pct)}% dari bulan lalu</div>`;
+  }
+
   document.getElementById('cfStats').innerHTML = `
     <div class="stat-card"><div class="label">Uang Masuk</div><div class="value hivis mono">${rupiah(masuk)}</div></div>
-    <div class="stat-card"><div class="label">Uang Keluar</div><div class="value orange mono">${rupiah(keluar)}</div></div>
-    <div class="stat-card"><div class="label">Saldo</div><div class="value mono">${rupiah(masuk-keluar)}</div></div>
+    <div class="stat-card"><div class="label">Uang Keluar</div><div class="value orange mono">${rupiah(keluar)}</div>${compareHtml}</div>
+    <div class="stat-card"><div class="label">Saldo Real (+ saldo awal)</div><div class="value mono">${rupiah(saldoReal)}</div></div>
   `;
   const wrap = document.getElementById('cashflowList');
   wrap.innerHTML = list.length ? list.map(c=>`
@@ -602,6 +668,77 @@ function deleteCashflow(id){
   if(!confirm('Hapus transaksi ini?')) return;
   db.ref(`cashflowAdmin/${id}`).remove();
 }
+
+/* ===== Saldo Awal ===== */
+document.getElementById('btnSaveSaldoAwal').addEventListener('click', ()=>{
+  const bri = parseFloat(document.getElementById('saldoBri').value) || 0;
+  const seabank = parseFloat(document.getElementById('saldoSeabank').value) || 0;
+  const tunai = parseFloat(document.getElementById('saldoTunai').value) || 0;
+  db.ref('saldoAwal').set({ bri, seabank, tunai }).then(()=>{
+    flash(document.getElementById('saveSaldoSuccess'));
+  });
+});
+
+/* ===== Top Pendapatan ===== */
+function initTopFilters(){
+  const selBulan = document.getElementById('topBulan');
+  const selTahun = document.getElementById('topTahun');
+  BULAN_NAMES_FULL.forEach((b,i)=>{
+    const opt = document.createElement('option');
+    opt.value = i+1; opt.textContent = b;
+    selBulan.appendChild(opt);
+  });
+  const now = new Date();
+  for(let y = now.getFullYear()-1; y <= now.getFullYear()+2; y++){
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    if(y === now.getFullYear()) opt.selected = true;
+    selTahun.appendChild(opt);
+  }
+  selBulan.addEventListener('change', renderTopPendapatan);
+  selTahun.addEventListener('change', renderTopPendapatan);
+}
+const BULAN_NAMES_FULL = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+function renderTopPendapatan(){
+  const wrap = document.getElementById('topPendapatanList');
+  if(!wrap) return;
+  const bulan = document.getElementById('topBulan').value;
+  const tahun = document.getElementById('topTahun').value;
+  if(!tahun) return;
+  const prefix = bulan ? `${tahun}-${String(bulan).padStart(2,'0')}` : `${tahun}`;
+
+  const ranking = Object.keys(drivers).map(id=>{
+    const o = orders[id] || {};
+    const total = Object.values(o).filter(x=>x.tanggal.startsWith(prefix)).reduce((s,x)=>s+Number(x.nominal||0),0);
+    return { id, name: drivers[id].name, total };
+  }).filter(r=>r.total > 0).sort((a,b)=> b.total - a.total);
+
+  wrap.innerHTML = ranking.length ? ranking.map((r,i)=>`
+    <div class="rank-row">
+      <div class="rank-num">${i+1}</div>
+      <div style="flex:1;">
+        <div class="l-title">${escapeHtml(r.name)}</div>
+      </div>
+      <div class="l-amount mono">${rupiah(r.total)}</div>
+    </div>
+  `).join('') : `<div class="empty-note">Belum ada data di periode ini.</div>`;
+}
+
+/* ===== Dark Mode ===== */
+function initTheme(){
+  const saved = localStorage.getItem('sk_theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('btnTheme').textContent = saved === 'dark' ? '☀️' : '🌙';
+}
+document.getElementById('btnTheme').addEventListener('click', ()=>{
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('sk_theme', next);
+  document.getElementById('btnTheme').textContent = next === 'dark' ? '☀️' : '🌙';
+});
+initTheme();
 </script>
 </body>
 </html>
