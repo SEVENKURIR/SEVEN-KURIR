@@ -167,9 +167,10 @@ function render(){
         <div class="mini-stat"><div class="lbl">Bulan</div><div class="val">${rupiah(bulanIni)}</div></div>
         <div class="mini-stat"><div class="lbl">Tahun</div><div class="val">${rupiah(tahunIni)}</div></div>
       </div>
+      <div class="tip-note">✨ Belum termasuk tip dari customer</div>
       <div class="setoran-item" style="margin:14px 20px 0; padding:12px 14px; background:var(--surface-soft); border-radius:12px;">
         <div>
-          <div class="periode">Setoran ke Admin (${BULAN_NAMES[bulan-1]})</div>
+          <div class="periode">Estimasi Setoran di Hari Setoran Nantinya</div>
           <span class="tag">${persen}% dari bulan ini</span>
         </div>
         <div>
@@ -204,6 +205,7 @@ function renderTopDriverSpotlight(driverIds, bulan, tahun){
       <div class="spotlight-name">${escapeHtml(top.name)}</div>
       <div class="spotlight-amount">${rupiah(top.total)}</div>
       <div class="spotlight-sub">Pendapatan tertinggi bulan ini di Seven Kurir</div>
+      <div class="spotlight-tip">✨ Belum termasuk tip dari customer</div>
     </div>
   `;
 }
