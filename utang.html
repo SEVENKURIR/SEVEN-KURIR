@@ -26,6 +26,10 @@
     </div>
     <div class="error-msg" id="loginError">Email atau password salah.</div>
     <button class="btn btn-primary btn-block" id="btnDoLogin" style="margin-top:8px;">Masuk</button>
+    <div style="display:flex; justify-content:center; gap:14px; margin-top:16px;">
+      <a href="index.html" style="font-size:12px; color:var(--muted); font-weight:600;">← Dashboard</a>
+      <a href="admin.html" style="font-size:12px; color:var(--muted); font-weight:600;">← Admin</a>
+    </div>
   </div>
 </div>
 
@@ -42,6 +46,8 @@
     </a>
     <div style="display:flex; gap:10px;">
       <button class="theme-toggle" id="btnTheme" title="Ganti tema">🌙</button>
+      <a href="index.html" class="btn btn-outline btn-sm">Lihat Dashboard</a>
+      <a href="admin.html" class="btn btn-outline btn-sm">Admin</a>
       <button class="btn btn-danger btn-sm" id="btnLogout">Logout</button>
     </div>
   </header>
@@ -95,76 +101,37 @@
     </div>
   </section>
 
-  <!-- ==== Saldo Awal ==== -->
-  <section class="section" style="padding-top:0;">
-    <div class="card">
-      <div class="section-head"><h2>Saldo Awal</h2></div>
-      <div class="section-desc">Isi modal awal lu sebelum mulai pake sistem ini — biar Saldo Real ke bawah ngitung dari kondisi asli, bukan dari nol.</div>
-      <div class="field-row" style="grid-template-columns:1fr 1fr 1fr;">
-        <div class="field">
-          <label>Saldo ATM BRI</label>
-          <input type="number" id="saldoBri" placeholder="0">
-        </div>
-        <div class="field">
-          <label>Saldo SeaBank</label>
-          <input type="number" id="saldoSeabank" placeholder="0">
-        </div>
-        <div class="field">
-          <label>Uang Tunai Dipegang</label>
-          <input type="number" id="saldoTunai" placeholder="0">
-        </div>
-      </div>
-      <button class="btn btn-primary btn-block" id="btnSaveSaldoAwal">Simpan Saldo Awal</button>
-      <div class="success-msg" id="saveSaldoSuccess">Saldo awal tersimpan.</div>
-    </div>
-  </section>
-
-  <!-- ==== Cashflow Admin ==== -->
+  <!-- ==== Cashflow Admin (Pengeluaran) ==== -->
   <section class="section" style="padding-top:0;">
     <div class="card">
       <div class="section-head"><h2>Cashflow Pribadi Admin</h2></div>
-      <div class="section-desc">Bagian ini cuma keliatan buat yang login di sini — nggak nyambung ke data driver.</div>
+      <div class="section-desc">Catatan pengeluaran pribadi admin — nggak nyambung ke data driver.</div>
       <div class="stats-row" id="cfStats" style="margin-bottom:18px;"></div>
 
-      <div class="grid-2" style="margin-bottom:20px;">
-        <div class="card" style="box-shadow:none; border:1px solid var(--line);">
-          <div class="section-desc" style="margin-top:0; margin-bottom:10px;">Pemasukan vs Pengeluaran (6 bulan terakhir)</div>
-          <canvas id="barChart" height="220"></canvas>
-        </div>
-        <div class="card" style="box-shadow:none; border:1px solid var(--line);">
-          <div class="section-desc" style="margin-top:0; margin-bottom:10px;">Breakdown Pengeluaran per Kategori (bulan ini)</div>
-          <canvas id="donutChart" height="220"></canvas>
-        </div>
+      <div class="card" style="box-shadow:none; border:1px solid var(--line); margin-bottom:20px;">
+        <div class="section-desc" style="margin-top:0; margin-bottom:10px;">Breakdown Pengeluaran per Kategori (bulan ini)</div>
+        <canvas id="donutChart" height="220"></canvas>
       </div>
 
       <div class="field-row">
-        <div class="field">
-          <label>Tipe</label>
-          <select id="cfTipe">
-            <option value="masuk">Uang Masuk</option>
-            <option value="keluar" selected>Uang Keluar</option>
-          </select>
-        </div>
         <div class="field">
           <label>Jumlah (Rp)</label>
           <input type="number" id="cfJumlah" placeholder="500000">
         </div>
-      </div>
-      <div class="field-row">
         <div class="field">
           <label>Kategori</label>
           <select id="cfKategori"></select>
         </div>
-        <div class="field">
-          <label>Tanggal</label>
-          <input type="date" id="cfTanggal">
-        </div>
+      </div>
+      <div class="field">
+        <label>Tanggal</label>
+        <input type="date" id="cfTanggal">
       </div>
       <div class="field">
         <label>Catatan</label>
         <input type="text" id="cfCatatan" placeholder="Contoh: Beli bensin">
       </div>
-      <button class="btn btn-primary btn-block" id="btnAddCashflow" style="margin-bottom:18px;">+ Catat Transaksi</button>
+      <button class="btn btn-primary btn-block" id="btnAddCashflow" style="margin-bottom:18px;">+ Catat Pengeluaran</button>
       <div id="cashflowList"></div>
     </div>
   </section>
@@ -199,25 +166,19 @@ function flash(el){ el.style.display='block'; setTimeout(()=> el.style.display='
 
 let utangData = {};
 let cashflow = {};
-let saldoAwal = { bri: 0, seabank: 0, tunai: 0 };
-let barChartInstance = null;
 let donutChartInstance = null;
 let lunasTargetId = null;
 
-/* ===== Kategori (buat cashflow) ===== */
+/* ===== Kategori Pengeluaran (buat cashflow) ===== */
 const KATEGORI_KELUAR = ['Makan & Minuman','Transportasi','Kebutuhan Pribadi','Operasional Motor','Tagihan','Kesehatan','Lainnya'];
-const KATEGORI_MASUK = ['Setoran Driver Masuk','Pemasukan Lain'];
 const KATEGORI_WARNA = {
   'Makan & Minuman':'#FFC629', 'Transportasi':'#FF7A45', 'Kebutuhan Pribadi':'#00A651',
   'Operasional Motor':'#3B82F6', 'Tagihan':'#A855F7', 'Kesehatan':'#EC4899', 'Lainnya':'#6B7280'
 };
 function populateKategoriSelect(){
-  const tipe = document.getElementById('cfTipe').value;
   const sel = document.getElementById('cfKategori');
-  const list = tipe === 'masuk' ? KATEGORI_MASUK : KATEGORI_KELUAR;
-  sel.innerHTML = list.map(k=>`<option value="${k}">${k}</option>`).join('');
+  sel.innerHTML = KATEGORI_KELUAR.map(k=>`<option value="${k}">${k}</option>`).join('');
 }
-document.getElementById('cfTipe').addEventListener('change', populateKategoriSelect);
 
 /* ===== AUTH ===== */
 auth.onAuthStateChanged(user=>{
@@ -277,13 +238,6 @@ function attachListeners(){
   });
   db.ref('cashflowAdmin').on('value', snap=>{
     cashflow = snap.val() || {};
-    renderCashflow();
-  });
-  db.ref('saldoAwal').on('value', snap=>{
-    saldoAwal = snap.val() || { bri:0, seabank:0, tunai:0 };
-    document.getElementById('saldoBri').value = saldoAwal.bri || '';
-    document.getElementById('saldoSeabank').value = saldoAwal.seabank || '';
-    document.getElementById('saldoTunai').value = saldoAwal.tunai || '';
     renderCashflow();
   });
 }
@@ -393,15 +347,14 @@ function renderUtang(){
   `).join('') : `<div class="empty-note">Belum ada catatan utang.</div>`;
 }
 
-/* ===== Cashflow Admin ===== */
+/* ===== Cashflow Admin (Pengeluaran) ===== */
 document.getElementById('btnAddCashflow').addEventListener('click', ()=>{
-  const tipe = document.getElementById('cfTipe').value;
   const jumlah = parseFloat(document.getElementById('cfJumlah').value);
   const tanggal = document.getElementById('cfTanggal').value;
   const catatan = document.getElementById('cfCatatan').value.trim();
   const kategori = document.getElementById('cfKategori').value;
   if(!jumlah || !tanggal) return;
-  db.ref('cashflowAdmin').push({ tipe, jumlah, tanggal, catatan, kategori }).then(()=>{
+  db.ref('cashflowAdmin').push({ jumlah, tanggal, catatan, kategori }).then(()=>{
     document.getElementById('cfJumlah').value='';
     document.getElementById('cfCatatan').value='';
   });
@@ -409,17 +362,14 @@ document.getElementById('btnAddCashflow').addEventListener('click', ()=>{
 
 function renderCashflow(){
   const list = Object.keys(cashflow).map(id=>({id, ...cashflow[id]})).sort((a,b)=> b.tanggal.localeCompare(a.tanggal));
-  let masuk=0, keluar=0;
-  list.forEach(c=> c.tipe==='masuk' ? masuk+=Number(c.jumlah) : keluar+=Number(c.jumlah));
-  const saldoAwalTotal = (saldoAwal.bri||0) + (saldoAwal.seabank||0) + (saldoAwal.tunai||0);
-  const saldoReal = saldoAwalTotal + masuk - keluar;
+  const totalSemua = list.reduce((s,c)=>s+Number(c.jumlah),0);
 
   const now = new Date();
   const prefixBulanIni = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const prevDate = new Date(now.getFullYear(), now.getMonth()-1, 1);
   const prefixBulanLalu = `${prevDate.getFullYear()}-${String(prevDate.getMonth()+1).padStart(2,'0')}`;
-  const keluarBulanIni = list.filter(c=>c.tipe==='keluar' && c.tanggal.startsWith(prefixBulanIni)).reduce((s,c)=>s+Number(c.jumlah),0);
-  const keluarBulanLalu = list.filter(c=>c.tipe==='keluar' && c.tanggal.startsWith(prefixBulanLalu)).reduce((s,c)=>s+Number(c.jumlah),0);
+  const keluarBulanIni = list.filter(c=>c.tanggal.startsWith(prefixBulanIni)).reduce((s,c)=>s+Number(c.jumlah),0);
+  const keluarBulanLalu = list.filter(c=>c.tanggal.startsWith(prefixBulanLalu)).reduce((s,c)=>s+Number(c.jumlah),0);
   let compareHtml = '';
   if(keluarBulanLalu > 0){
     const pct = Math.round(((keluarBulanIni - keluarBulanLalu) / keluarBulanLalu) * 100);
@@ -428,60 +378,31 @@ function renderCashflow(){
   }
 
   document.getElementById('cfStats').innerHTML = `
-    <div class="stat-card"><div class="label">Uang Masuk</div><div class="value hivis mono">${rupiah(masuk)}</div></div>
-    <div class="stat-card"><div class="label">Uang Keluar</div><div class="value orange mono">${rupiah(keluar)}</div>${compareHtml}</div>
-    <div class="stat-card"><div class="label">Saldo Real (+ saldo awal)</div><div class="value mono">${rupiah(saldoReal)}</div></div>
+    <div class="stat-card"><div class="label">Pengeluaran Bulan Ini</div><div class="value orange mono">${rupiah(keluarBulanIni)}</div>${compareHtml}</div>
+    <div class="stat-card"><div class="label">Total Semua Pengeluaran</div><div class="value mono">${rupiah(totalSemua)}</div></div>
   `;
   const wrap = document.getElementById('cashflowList');
   wrap.innerHTML = list.length ? list.map(c=>`
     <div class="list-row">
       <div>
-        <div class="l-title">${escapeHtml(c.catatan || (c.tipe==='masuk'?'Pemasukan':'Pengeluaran'))}</div>
+        <div class="l-title">${escapeHtml(c.catatan || 'Pengeluaran')}</div>
         <div class="l-sub">${formatTgl(c.tanggal)} · ${escapeHtml(c.kategori || 'Lainnya')}</div>
       </div>
       <div style="display:flex; align-items:center; gap:10px;">
-        <div class="l-amount ${c.tipe}">${c.tipe==='masuk'?'+':'-'}${rupiah(c.jumlah)}</div>
+        <div class="l-amount keluar">-${rupiah(c.jumlah)}</div>
         <button class="btn btn-danger btn-sm" onclick="deleteCashflow('${c.id}')">✕</button>
       </div>
     </div>
-  `).join('') : `<div class="empty-note">Belum ada transaksi.</div>`;
+  `).join('') : `<div class="empty-note">Belum ada pengeluaran tercatat.</div>`;
 
   updateCharts(list);
 }
 
-/* ===== Charts ===== */
+/* ===== Chart Breakdown Kategori ===== */
 function updateCharts(list){
   const now = new Date();
-  const bulanLabels = [];
-  const bulanKeys = [];
-  for(let i=5; i>=0; i--){
-    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
-    bulanKeys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
-    bulanLabels.push(BULAN_SHORT[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2));
-  }
-  const dataMasuk = bulanKeys.map(key => list.filter(c=>c.tipe==='masuk' && c.tanggal.startsWith(key)).reduce((s,c)=>s+Number(c.jumlah),0));
-  const dataKeluar = bulanKeys.map(key => list.filter(c=>c.tipe==='keluar' && c.tanggal.startsWith(key)).reduce((s,c)=>s+Number(c.jumlah),0));
-
-  const barCtx = document.getElementById('barChart').getContext('2d');
-  if(barChartInstance) barChartInstance.destroy();
-  barChartInstance = new Chart(barCtx, {
-    type: 'bar',
-    data: {
-      labels: bulanLabels,
-      datasets: [
-        { label: 'Masuk', data: dataMasuk, backgroundColor: '#00A651', borderRadius: 6 },
-        { label: 'Keluar', data: dataKeluar, backgroundColor: '#FF7A45', borderRadius: 6 }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { position: 'bottom', labels:{ boxWidth:10, font:{size:11} } } },
-      scales: { y: { ticks: { callback: v => 'Rp' + (v/1000) + 'rb' } } }
-    }
-  });
-
   const prefixBulanIni = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const keluarBulanIni = list.filter(c=>c.tipe==='keluar' && c.tanggal.startsWith(prefixBulanIni));
+  const keluarBulanIni = list.filter(c=>c.tanggal.startsWith(prefixBulanIni));
   const perKategori = {};
   keluarBulanIni.forEach(c=>{
     const k = c.kategori || 'Lainnya';
@@ -513,16 +434,6 @@ function deleteCashflow(id){
   if(!confirm('Hapus transaksi ini?')) return;
   db.ref(`cashflowAdmin/${id}`).remove();
 }
-
-/* ===== Saldo Awal ===== */
-document.getElementById('btnSaveSaldoAwal').addEventListener('click', ()=>{
-  const bri = parseFloat(document.getElementById('saldoBri').value) || 0;
-  const seabank = parseFloat(document.getElementById('saldoSeabank').value) || 0;
-  const tunai = parseFloat(document.getElementById('saldoTunai').value) || 0;
-  db.ref('saldoAwal').set({ bri, seabank, tunai }).then(()=>{
-    flash(document.getElementById('saveSaldoSuccess'));
-  });
-});
 
 /* ===== Dark Mode ===== */
 function initTheme(){
