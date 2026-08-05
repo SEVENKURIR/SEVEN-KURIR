@@ -187,6 +187,9 @@ const storage = firebase.storage();
 // GANTI dengan User UID akun admin ke-2 dari Firebase Console -> Authentication -> Users
 const UTANG_ADMIN_UID = 'GANTI_DENGAN_UID_AKUN_UTANG';
 
+// Akun-akun yang SENGAJA gak boleh masuk ke panel Utang (misal akun admin utama)
+const BLOCKED_UTANG_EMAILS = ['adminrey01@gmail.com'];
+
 function rupiah(n){ return 'Rp' + Math.round(n||0).toLocaleString('id-ID'); }
 const BULAN_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
@@ -219,6 +222,16 @@ document.getElementById('cfTipe').addEventListener('change', populateKategoriSel
 /* ===== AUTH ===== */
 auth.onAuthStateChanged(user=>{
   if(user){
+    if(BLOCKED_UTANG_EMAILS.includes((user.email||'').toLowerCase())){
+      // Akun ini sengaja diblokir dari halaman utang — langsung logout paksa
+      auth.signOut().then(()=>{
+        document.getElementById('loginScreen').style.display='flex';
+        document.getElementById('utangPanel').style.display='none';
+        document.getElementById('loginError').textContent = `Akun ${user.email} gak punya akses ke halaman ini.`;
+        document.getElementById('loginError').style.display='block';
+      });
+      return;
+    }
     if(UTANG_ADMIN_UID !== 'GANTI_DENGAN_UID_AKUN_UTANG' && user.uid !== UTANG_ADMIN_UID){
       // Login, tapi bukan akun yang punya akses ke halaman ini
       document.getElementById('loginScreen').style.display='flex';
