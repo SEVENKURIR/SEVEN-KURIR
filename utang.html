@@ -138,24 +138,47 @@
 
   <input type="file" id="lunasFotoInput" accept="image/*" style="display:none;">
 
+  <div id="fotoLightbox" onclick="this.style.display='none'" style="display:none; position:fixed; inset:0; background:rgba(10,10,12,0.85); z-index:100; align-items:center; justify-content:center; padding:24px; cursor:zoom-out;">
+    <img id="fotoLightboxImg" src="" style="max-width:100%; max-height:100%; border-radius:12px; box-shadow:0 20px 50px rgba(0,0,0,0.5);">
+  </div>
+
   <footer>Seven Kurir · Pencatatan Utang · data tersimpan di Firebase</footer>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="firebase-config.js"></script>
 <script>
-// Inisialisasi Storage khusus di halaman ini
-const storage = firebase.storage();
-
-// GANTI dengan User UID akun admin ke-2 dari Firebase Console -> Authentication -> Users
-const UTANG_ADMIN_UID = 'GANTI_DENGAN_UID_AKUN_UTANG';
+// UID akun admin utang (adminreynaldi01@seve...) — jangan diubah kecuali ganti akun
+const UTANG_ADMIN_UID = 'aPIJyRf2HmNPrNLbRyvZiUQne0M2';
 
 // Akun-akun yang SENGAJA gak boleh masuk ke panel Utang (misal akun admin utama)
-const BLOCKED_UTANG_EMAILS = ['adminrey01@gmail.com'];
+const BLOCKED_UTANG_EMAILS = ['adminrey01@gmail.com', 'bilalreynaldi11@gmail.com'];
+
+// Foto bukti disimpen langsung sebagai base64 di Database (bukan Firebase Storage),
+// jadi dikompres dulu di browser biar ukurannya kecil sebelum disimpen.
+function resizeImageToBase64(file, maxWidth=900, quality=0.7){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        if(w > maxWidth){ h = Math.round(h * (maxWidth / w)); w = maxWidth; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = ()=> reject(new Error('Gagal baca gambar'));
+      img.src = e.target.result;
+    };
+    reader.onerror = ()=> reject(new Error('Gagal baca file'));
+    reader.readAsDataURL(file);
+  });
+}
 
 function rupiah(n){ return 'Rp' + Math.round(n||0).toLocaleString('id-ID'); }
 const BULAN_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
@@ -193,7 +216,7 @@ auth.onAuthStateChanged(user=>{
       });
       return;
     }
-    if(UTANG_ADMIN_UID !== 'GANTI_DENGAN_UID_AKUN_UTANG' && user.uid !== UTANG_ADMIN_UID){
+    if(user.uid !== UTANG_ADMIN_UID){
       // Login, tapi bukan akun yang punya akses ke halaman ini
       document.getElementById('loginScreen').style.display='flex';
       document.getElementById('utangPanel').style.display='none';
@@ -259,7 +282,7 @@ document.getElementById('btnAddUtang').addEventListener('click', async ()=>{
   try{
     await db.ref('utang').push({
       nama, jumlah, tanggalPinjam,
-      catatan: catatan || null, fotoUrl: null, tanggalBayar: null, lunas: false, dibuat: Date.now()
+      catatan: catatan || null, fotoBase64: null, tanggalBayar: null, lunas: false, dibuat: Date.now()
     });
 
     document.getElementById('utNama').value='';
@@ -287,26 +310,20 @@ document.getElementById('lunasFotoInput').addEventListener('change', async (e)=>
   const id = lunasTargetId;
   if(!file || !id) return;
   try{
-    const path = `utang/${id}/${file.name}`;
-    const storageRef = storage.ref(path);
-    await storageRef.put(file);
-    const fotoUrl = await storageRef.getDownloadURL();
-    await db.ref(`utang/${id}`).update({ lunas: true, fotoUrl, tanggalBayar: todayStr() });
+    const fotoBase64 = await resizeImageToBase64(file);
+    await db.ref(`utang/${id}`).update({ lunas: true, fotoBase64, tanggalBayar: todayStr() });
   }catch(err){
     console.error(err);
-    alert('Gagal upload bukti: ' + err.message);
+    alert('Gagal simpan bukti: ' + err.message);
   }
 });
 function batalLunas(id){
   if(!confirm('Batalkan status lunas utang ini?')) return;
   db.ref(`utang/${id}`).update({ lunas: false });
 }
-function deleteUtang(id, fotoUrl){
+function deleteUtang(id){
   if(!confirm('Hapus catatan utang ini?')) return;
   db.ref(`utang/${id}`).remove();
-  if(fotoUrl){
-    try{ storage.refFromURL(fotoUrl).delete().catch(()=>{}); }catch(e){}
-  }
 }
 
 function renderUtang(){
@@ -332,7 +349,7 @@ function renderUtang(){
         <div class="l-title">${escapeHtml(u.nama)} ${u.lunas ? '<span class="badge" style="background:#E6F7EC; color:var(--green);">Lunas</span>' : ''}</div>
         <div class="l-sub">Pinjam ${formatTgl(u.tanggalPinjam)}${u.lunas && u.tanggalBayar ? ' · Dibayar ' + formatTgl(u.tanggalBayar) : ''}</div>
         ${u.catatan ? `<div class="l-sub">${escapeHtml(u.catatan)}</div>` : ''}
-        ${u.fotoUrl ? `<a href="${u.fotoUrl}" target="_blank" style="font-size:11.5px; color:var(--yellow-deep); font-weight:600;">Lihat bukti bayar →</a>` : ''}
+        ${u.fotoBase64 ? `<img src="${u.fotoBase64}" onclick="lihatFoto('${u.id}')" style="margin-top:6px; width:48px; height:48px; object-fit:cover; border-radius:8px; cursor:pointer; border:1px solid var(--line);" alt="Bukti bayar">` : ''}
       </div>
       <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
         <div class="l-amount mono">${rupiah(u.jumlah)}</div>
@@ -340,11 +357,18 @@ function renderUtang(){
           ${u.lunas
             ? `<button class="btn btn-outline btn-sm" onclick="batalLunas('${u.id}')">Batal Lunas</button>`
             : `<button class="btn btn-outline btn-sm" onclick="mintaLunas('${u.id}')">Tandai Lunas</button>`}
-          <button class="btn btn-danger btn-sm" onclick="deleteUtang('${u.id}', ${u.fotoUrl ? `'${u.fotoUrl}'` : 'null'})">✕</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteUtang('${u.id}')">✕</button>
         </div>
       </div>
     </div>
   `).join('') : `<div class="empty-note">Belum ada catatan utang.</div>`;
+}
+
+function lihatFoto(id){
+  const u = utangData[id];
+  if(!u || !u.fotoBase64) return;
+  document.getElementById('fotoLightboxImg').src = u.fotoBase64;
+  document.getElementById('fotoLightbox').style.display = 'flex';
 }
 
 /* ===== Cashflow Admin (Pengeluaran) ===== */
