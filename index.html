@@ -80,9 +80,10 @@ function initFilters(){
     if(i+1 === now.getMonth()+1) opt.selected = true;
     selBulan.appendChild(opt);
   });
-  for(let y = now.getFullYear(); y <= now.getFullYear()+2; y++){
+  for(let y = now.getFullYear()-2; y <= now.getFullYear()+2; y++){
     const opt = document.createElement('option');
     opt.value = y; opt.textContent = y;
+    if(y === now.getFullYear()) opt.selected = true;
     selTahun.appendChild(opt);
   }
   selBulan.addEventListener('change', render);
