@@ -1,4 +1,4 @@
-const CACHE_NAME = 'seven-kurir-v1';
+const CACHE_NAME = 'seven-kurir-v2';
 const PRECACHE_URLS = [
   'index.html',
   'admin.html',
@@ -21,10 +21,17 @@ self.addEventListener('activate', (event) => {
     caches.keys()
       .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll())
+      .then(clientsList => {
+        // Kasih tau semua tab yang lagi kebuka biar auto-reload, gak perlu hard refresh manual
+        clientsList.forEach(client => client.postMessage({ type: 'SW_UPDATED' }));
+      })
   );
 });
 
 // Network-first buat file statis di domain sendiri, biar tetep bisa kebuka pas offline/sinyal jelek.
+// cache:'no-store' dipaksa biar SELALU ambil versi terbaru dari server, gak kena cache HTTP browser
+// yang bisa bikin file lama nyangkut walaupun udah di-deploy ulang.
 // Request ke Firebase (data realtime, auth) gak disentuh sama sekali — selalu langsung ke jaringan.
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
@@ -32,7 +39,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: 'no-store' })
       .then(res => {
         const resClone = res.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));

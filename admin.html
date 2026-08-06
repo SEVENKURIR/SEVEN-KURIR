@@ -73,6 +73,17 @@
           <label>Persen Potongan Default (%)</label>
           <input type="number" id="newDriverPersen" placeholder="Contoh: 17">
         </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Aktif Dari (opsional)</label>
+            <input type="date" id="newDriverAktifDari">
+          </div>
+          <div class="field">
+            <label>Aktif Sampai (opsional)</label>
+            <input type="date" id="newDriverAktifSampai">
+          </div>
+        </div>
+        <div class="section-desc" style="margin:-4px 0 12px;">Kosongin "Aktif Dari/Sampai" kalau driver-nya masih aktif sekarang. Isi keduanya buat backfill driver lama yang udah keluar — dia cuma bakal nongol di dashboard pas bulan yang sesuai periode itu.</div>
         <button class="btn btn-primary btn-block" id="btnAddDriver">+ Tambah Driver</button>
         <div class="success-msg" id="addDriverSuccess">Driver berhasil ditambahkan.</div>
       </div>
@@ -411,10 +422,14 @@ function populateDriverSelects(){
 document.getElementById('btnAddDriver').addEventListener('click', ()=>{
   const name = document.getElementById('newDriverName').value.trim();
   const persen = parseFloat(document.getElementById('newDriverPersen').value);
+  const aktifDari = document.getElementById('newDriverAktifDari').value || null;
+  const aktifSampai = document.getElementById('newDriverAktifSampai').value || null;
   if(!name || isNaN(persen)) return;
-  db.ref('drivers').push({ name, persen }).then(()=>{
+  db.ref('drivers').push({ name, persen, aktifDari, aktifSampai }).then(()=>{
     document.getElementById('newDriverName').value='';
     document.getElementById('newDriverPersen').value='';
+    document.getElementById('newDriverAktifDari').value='';
+    document.getElementById('newDriverAktifSampai').value='';
     flash(document.getElementById('addDriverSuccess'));
     logActivity(`Tambah driver: ${name} (${persen}%)`);
   });
@@ -427,17 +442,30 @@ function renderDriverManage(){
   wrap.innerHTML = ids.length ? ids.map(id=>{
     const d = drivers[id];
     return `
-    <div class="list-row">
-      <div style="flex:1;">
+    <div class="list-row" style="flex-direction:column; align-items:stretch; gap:8px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
         <div class="l-title">${escapeHtml(d.name)}</div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <input type="number" value="${d.persen ?? 15}" style="width:64px; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:12.5px;" onchange="updateDriverPersen('${id}', this.value)">
+          <span style="font-size:12px; color:var(--muted);">%</span>
+          <button class="btn btn-danger btn-sm" onclick="deleteDriver('${id}')">✕</button>
+        </div>
       </div>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <input type="number" value="${d.persen ?? 15}" style="width:64px; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:12.5px;" onchange="updateDriverPersen('${id}', this.value)">
-        <span style="font-size:12px; color:var(--muted);">%</span>
-        <button class="btn btn-danger btn-sm" onclick="deleteDriver('${id}')">✕</button>
+      <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+        <span style="font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:0.4px; font-weight:600;">Aktif:</span>
+        <input type="date" value="${d.aktifDari || ''}" style="padding:5px 7px; border:1px solid var(--line); border-radius:7px; font-size:11.5px;" onchange="updateDriverAktif('${id}', 'aktifDari', this.value)">
+        <span style="font-size:11px; color:var(--muted);">s/d</span>
+        <input type="date" value="${d.aktifSampai || ''}" style="padding:5px 7px; border:1px solid var(--line); border-radius:7px; font-size:11.5px;" onchange="updateDriverAktif('${id}', 'aktifSampai', this.value)">
+        <span style="font-size:10.5px; color:var(--muted);">(kosong = ${!d.aktifDari ? 'dari awal' : ''}${!d.aktifDari && !d.aktifSampai ? ' / ' : ''}${!d.aktifSampai ? 'masih aktif' : ''})</span>
       </div>
     </div>`;
   }).join('') : `<div class="empty-note">Belum ada driver.</div>`;
+}
+function updateDriverAktif(id, field, val){
+  const nama = drivers[id] ? drivers[id].name : id;
+  db.ref(`drivers/${id}/${field}`).set(val || null).then(()=>{
+    logActivity(`Ubah periode aktif ${nama} (${field === 'aktifDari' ? 'dari' : 'sampai'}: ${val || 'kosong'})`);
+  });
 }
 function updateDriverPersen(id, val){
   const persen = parseFloat(val);
@@ -890,6 +918,11 @@ initTheme();
 
 /* ===== PWA Service Worker ===== */
 if('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('message', (event)=>{
+    if(event.data && event.data.type === 'SW_UPDATED'){
+      window.location.reload();
+    }
+  });
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('sw.js').catch(err=> console.log('SW gagal register:', err));
   });

@@ -116,9 +116,18 @@ function sumTotal(driverId){
   return orderArray(driverId).reduce((s,o)=>s+Number(o.nominal||0),0);
 }
 
+function isDriverActiveInPeriod(driver, bulan, tahun){
+  const monthStart = `${tahun}-${String(bulan).padStart(2,'0')}-01`;
+  const lastDay = new Date(tahun, bulan, 0).getDate();
+  const monthEnd = `${tahun}-${String(bulan).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+  const aktifDari = driver.aktifDari || '0000-01-01';
+  const aktifSampai = driver.aktifSampai || '9999-12-31';
+  return aktifDari <= monthEnd && aktifSampai >= monthStart;
+}
+
 function render(){
-  const driverIds = Object.keys(drivers);
   const { bulan, tahun } = getSelectedBulanTahun();
+  const driverIds = Object.keys(drivers).filter(id => isDriverActiveInPeriod(drivers[id], bulan, tahun));
   const today = todayStr();
 
   // stats global
@@ -252,6 +261,11 @@ initTheme();
 
 /* ===== PWA Service Worker ===== */
 if('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('message', (event)=>{
+    if(event.data && event.data.type === 'SW_UPDATED'){
+      window.location.reload();
+    }
+  });
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('sw.js').catch(err=> console.log('SW gagal register:', err));
   });
