@@ -7,6 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#FFC629">
+<link rel="apple-touch-icon" href="LOGO%20SEVEN%20KURIR.png">
 </head>
 <body>
 
@@ -246,6 +249,13 @@ document.getElementById('btnTheme').addEventListener('click', ()=>{
   document.getElementById('btnTheme').textContent = next === 'dark' ? '☀️' : '🌙';
 });
 initTheme();
+
+/* ===== PWA Service Worker ===== */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(err=> console.log('SW gagal register:', err));
+  });
+}
 </script>
 </body>
 </html>

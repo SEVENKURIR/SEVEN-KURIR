@@ -7,6 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#FFC629">
+<link rel="apple-touch-icon" href="LOGO%20SEVEN%20KURIR.png">
 </head>
 <body>
 
@@ -25,8 +28,10 @@
       <input type="password" id="loginPassword" placeholder="••••••••">
     </div>
     <div class="error-msg" id="loginError">Email atau password salah.</div>
+    <div class="success-msg" id="resetSuccess">Link reset password udah dikirim, cek email.</div>
     <button class="btn btn-primary btn-block" id="btnDoLogin" style="margin-top:8px;">Masuk</button>
-    <div style="display:flex; justify-content:center; gap:14px; margin-top:16px;">
+    <div style="margin-top:12px;"><a href="#" id="btnForgotPassword" style="color:var(--muted); font-size:12.5px;">Lupa password?</a></div>
+    <div style="display:flex; justify-content:center; gap:14px; margin-top:8px;">
       <a href="index.html" style="font-size:12px; color:var(--muted); font-weight:600;">← Dashboard</a>
       <a href="admin.html" style="font-size:12px; color:var(--muted); font-weight:600;">← Admin</a>
     </div>
@@ -247,6 +252,23 @@ document.getElementById('loginPassword').addEventListener('keydown', e=>{
   if(e.key==='Enter') document.getElementById('btnDoLogin').click();
 });
 document.getElementById('btnLogout').addEventListener('click', ()=> auth.signOut());
+document.getElementById('btnForgotPassword').addEventListener('click', (e)=>{
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  document.getElementById('loginError').style.display='none';
+  document.getElementById('resetSuccess').style.display='none';
+  if(!email){
+    document.getElementById('loginError').textContent = 'Isi email dulu di atas, baru klik "Lupa password?"';
+    document.getElementById('loginError').style.display='block';
+    return;
+  }
+  auth.sendPasswordResetEmail(email).then(()=>{
+    document.getElementById('resetSuccess').style.display='block';
+  }).catch(err=>{
+    document.getElementById('loginError').textContent = 'Gagal kirim reset: ' + err.message;
+    document.getElementById('loginError').style.display='block';
+  });
+});
 
 /* ===== LISTENERS ===== */
 function attachListeners(){
@@ -473,6 +495,13 @@ document.getElementById('btnTheme').addEventListener('click', ()=>{
   document.getElementById('btnTheme').textContent = next === 'dark' ? '☀️' : '🌙';
 });
 initTheme();
+
+/* ===== PWA Service Worker ===== */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(err=> console.log('SW gagal register:', err));
+  });
+}
 </script>
 </body>
 </html>

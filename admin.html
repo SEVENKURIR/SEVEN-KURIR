@@ -7,6 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#FFC629">
+<link rel="apple-touch-icon" href="LOGO%20SEVEN%20KURIR.png">
 </head>
 <body>
 
@@ -25,8 +28,10 @@
       <input type="password" id="loginPassword" placeholder="••••••••">
     </div>
     <div class="error-msg" id="loginError">Email atau password salah.</div>
+    <div class="success-msg" id="resetSuccess">Link reset password udah dikirim, cek email.</div>
     <button class="btn btn-primary btn-block" id="btnDoLogin" style="margin-top:8px;">Masuk</button>
-    <div style="margin-top:16px;"><a href="index.html" style="color:var(--muted); font-size:12.5px;">← Balik ke dashboard driver</a></div>
+    <div style="margin-top:12px;"><a href="#" id="btnForgotPassword" style="color:var(--muted); font-size:12.5px;">Lupa password?</a></div>
+    <div style="margin-top:8px;"><a href="index.html" style="color:var(--muted); font-size:12.5px;">← Balik ke dashboard driver</a></div>
   </div>
 </div>
 
@@ -152,6 +157,30 @@
     </div>
   </section>
 
+  <!-- ==== Cari Orderan (lintas semua driver) ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head"><h2>Cari Orderan</h2></div>
+      <div class="section-desc">Cari orderan lintas semua driver — kepake buat cek "tanggal segini semua driver input berapa" tanpa harus buka satu-satu.</div>
+      <div class="field-row">
+        <div class="field">
+          <label>Dari Tanggal</label>
+          <input type="date" id="searchOrderDari">
+        </div>
+        <div class="field">
+          <label>Sampai Tanggal</label>
+          <input type="date" id="searchOrderSampai">
+        </div>
+      </div>
+      <div class="field">
+        <label>Driver (opsional)</label>
+        <select id="searchOrderDriver"><option value="">Semua Driver</option></select>
+      </div>
+      <button class="btn btn-outline btn-block" id="btnSearchOrder" style="margin-bottom:14px;">Cari</button>
+      <div id="searchOrderResult"><div class="empty-note">Isi tanggal dulu, terus klik Cari.</div></div>
+    </div>
+  </section>
+
   <section class="section" style="padding-top:0;">
     <div class="grid-2">
       <div class="card">
@@ -255,6 +284,7 @@ let drivers = {};
 let orders = {};
 let activityLog = {};
 let bulkParsedRows = [];
+let editingOrderId = null;
 
 const BULAN_MAP = {
   jan:1, januari:1, feb:2, februari:2, mar:3, maret:3, apr:4, april:4,
@@ -285,6 +315,23 @@ document.getElementById('btnDoLogin').addEventListener('click', ()=>{
 });
 document.getElementById('loginPassword').addEventListener('keydown', e=>{
   if(e.key==='Enter') document.getElementById('btnDoLogin').click();
+});
+document.getElementById('btnForgotPassword').addEventListener('click', (e)=>{
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  document.getElementById('loginError').style.display='none';
+  document.getElementById('resetSuccess').style.display='none';
+  if(!email){
+    document.getElementById('loginError').textContent = 'Isi email dulu di atas, baru klik "Lupa password?"';
+    document.getElementById('loginError').style.display='block';
+    return;
+  }
+  auth.sendPasswordResetEmail(email).then(()=>{
+    document.getElementById('resetSuccess').style.display='block';
+  }).catch(err=>{
+    document.getElementById('loginError').textContent = 'Gagal kirim reset: ' + err.message;
+    document.getElementById('loginError').style.display='block';
+  });
 });
 document.getElementById('btnLogout').addEventListener('click', ()=> auth.signOut());
 
@@ -354,6 +401,10 @@ function populateDriverSelects(){
     el.innerHTML = opts || '<option value="">Belum ada driver</option>';
     if(ids.includes(prev)) el.value = prev;
   });
+  const searchEl = document.getElementById('searchOrderDriver');
+  const prevSearch = searchEl.value;
+  searchEl.innerHTML = '<option value="">Semua Driver</option>' + opts;
+  if(ids.includes(prevSearch)) searchEl.value = prevSearch;
 }
 
 /* ===== Tambah Driver ===== */
@@ -410,10 +461,18 @@ document.getElementById('btnAddOrder').addEventListener('click', ()=>{
   const tanggal = document.getElementById('orderTanggal').value;
   const nominal = parseFloat(document.getElementById('orderNominal').value);
   if(!driverId || !tanggal || !nominal) return;
+
+  const nama = drivers[driverId] ? drivers[driverId].name : driverId;
+  const existing = Object.values(orders[driverId] || {}).filter(o=>o.tanggal===tanggal);
+  if(existing.length){
+    const totalExisting = existing.reduce((s,o)=>s+Number(o.nominal||0),0);
+    const ok = confirm(`${nama} udah ada orderan di ${formatTgl(tanggal)} sebesar ${rupiah(totalExisting)} (${existing.length} entri).\n\nMau tetep tambahin ${rupiah(nominal)} lagi (jadi ${rupiah(totalExisting+nominal)})?`);
+    if(!ok) return;
+  }
+
   db.ref(`orders/${driverId}`).push({ tanggal, nominal }).then(()=>{
     document.getElementById('orderNominal').value='';
     flash(document.getElementById('addOrderSuccess'));
-    const nama = drivers[driverId] ? drivers[driverId].name : driverId;
     logActivity(`Input orderan ${nama}: ${rupiah(nominal)} (${formatTgl(tanggal)})`);
   });
 });
@@ -451,8 +510,73 @@ function deleteOrder(driverId, orderId){
   });
 }
 
+/* ===== Cari Orderan (lintas semua driver) ===== */
+document.getElementById('btnSearchOrder').addEventListener('click', ()=>{
+  const dari = document.getElementById('searchOrderDari').value;
+  let sampai = document.getElementById('searchOrderSampai').value;
+  const filterDriverId = document.getElementById('searchOrderDriver').value;
+  const wrap = document.getElementById('searchOrderResult');
+  if(!dari){ alert('Isi tanggal Dari dulu minimal.'); return; }
+  if(!sampai) sampai = dari;
+
+  const driverIds = filterDriverId ? [filterDriverId] : Object.keys(drivers);
+  let results = [];
+  driverIds.forEach(driverId=>{
+    const list = Object.keys(orders[driverId] || {}).map(id=>({ id, driverId, ...orders[driverId][id] }));
+    results = results.concat(list.filter(o=> o.tanggal >= dari && o.tanggal <= sampai));
+  });
+  results.sort((a,b)=> b.tanggal.localeCompare(a.tanggal) || a.driverId.localeCompare(b.driverId));
+
+  if(!results.length){
+    wrap.innerHTML = `<div class="empty-note">Gak ada orderan di rentang ini.</div>`;
+    return;
+  }
+
+  const total = results.reduce((s,o)=>s+Number(o.nominal||0),0);
+  wrap.innerHTML = `
+    <div class="section-desc" style="margin-top:0; margin-bottom:8px;">${results.length} orderan ditemukan · Total ${rupiah(total)}</div>
+    <div style="max-height:400px; overflow-y:auto;">
+      ${results.map(o=>`
+        <div class="list-row">
+          <div>
+            <div class="l-title">${escapeHtml(drivers[o.driverId] ? drivers[o.driverId].name : o.driverId)}</div>
+            <div class="l-sub">${formatTgl(o.tanggal)}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="l-amount mono">${rupiah(o.nominal)}</div>
+            <button class="btn btn-danger btn-sm" onclick="deleteOrder('${o.driverId}','${o.id}')">✕</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+});
+
 /* ===== Kelola / Hapus Orderan ===== */
-document.getElementById('manageOrderDriver').addEventListener('change', renderManageOrderList);
+document.getElementById('manageOrderDriver').addEventListener('change', ()=>{
+  editingOrderId = null;
+  renderManageOrderList();
+});
+
+function startEditOrder(orderId){
+  editingOrderId = orderId;
+  renderManageOrderList();
+}
+function cancelEditOrder(){
+  editingOrderId = null;
+  renderManageOrderList();
+}
+function saveEditOrder(driverId, orderId){
+  const tanggal = document.getElementById(`editTanggal_${orderId}`).value;
+  const nominal = parseFloat(document.getElementById(`editNominal_${orderId}`).value);
+  if(!tanggal || !nominal) return;
+  const nama = drivers[driverId] ? drivers[driverId].name : driverId;
+  db.ref(`orders/${driverId}/${orderId}`).update({ tanggal, nominal }).then(()=>{
+    logActivity(`Edit orderan ${nama} jadi ${rupiah(nominal)} (${formatTgl(tanggal)})`);
+    editingOrderId = null;
+    renderManageOrderList();
+  });
+}
 
 function renderManageOrderList(){
   const wrap = document.getElementById('manageOrderList');
@@ -464,15 +588,34 @@ function renderManageOrderList(){
     .map(id=>({ id, ...orders[driverId][id] }))
     .sort((a,b)=> b.tanggal.localeCompare(a.tanggal));
 
-  wrap.innerHTML = list.length ? list.map(o=>`
+  wrap.innerHTML = list.length ? list.map(o=>{
+    if(o.id === editingOrderId){
+      return `
+      <div class="list-row" style="align-items:flex-end; gap:8px;">
+        <div class="field" style="margin-bottom:0; flex:1;">
+          <label>Tanggal</label>
+          <input type="date" id="editTanggal_${o.id}" value="${o.tanggal}">
+        </div>
+        <div class="field" style="margin-bottom:0; flex:1;">
+          <label>Nominal</label>
+          <input type="number" id="editNominal_${o.id}" value="${o.nominal}">
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-primary btn-sm" onclick="saveEditOrder('${driverId}','${o.id}')">Simpan</button>
+          <button class="btn btn-outline btn-sm" onclick="cancelEditOrder()">Batal</button>
+        </div>
+      </div>`;
+    }
+    return `
     <div class="list-row">
       <div class="l-title">${formatTgl(o.tanggal)}</div>
       <div style="display:flex; align-items:center; gap:10px;">
         <div class="l-amount mono">${rupiah(o.nominal)}</div>
+        <button class="btn btn-outline btn-sm" onclick="startEditOrder('${o.id}')">Edit</button>
         <button class="btn btn-danger btn-sm" onclick="deleteOrder('${driverId}','${o.id}')">✕</button>
       </div>
-    </div>
-  `).join('') : `<div class="empty-note">Driver ini belum punya orderan.</div>`;
+    </div>`;
+  }).join('') : `<div class="empty-note">Driver ini belum punya orderan.</div>`;
 }
 
 document.getElementById('btnDeleteRange').addEventListener('click', ()=>{
@@ -546,7 +689,7 @@ document.getElementById('btnBuatSetoran').addEventListener('click', ()=>{
   const totalKotor = hitungKotorRange(driverId, dari, sampai);
   const totalBersih = totalKotor * (1 - persen/100);
   db.ref(`setoran/${driverId}`).push({
-    dariTanggal: dari, sampaiTanggal: sampai, persen, totalKotor, totalBersih
+    dariTanggal: dari, sampaiTanggal: sampai, persen, totalKotor, totalBersih, dibuat: Date.now()
   }).then(()=>{
     flash(document.getElementById('addSetoranSuccess'));
     const nama = drivers[driverId] ? drivers[driverId].name : driverId;
@@ -625,6 +768,9 @@ document.getElementById('btnBulkPreview').addEventListener('click', ()=>{
   bulkParsedRows = lines.map(l=>parseBulkOrderLine(l, defaultYear));
   renderBulkPreview();
 });
+document.getElementById('bulkOrderDriver').addEventListener('change', ()=>{
+  if(bulkParsedRows.length) renderBulkPreview();
+});
 
 function renderBulkPreview(){
   const wrap = document.getElementById('bulkPreviewResult');
@@ -633,19 +779,46 @@ function renderBulkPreview(){
     document.getElementById('btnBulkSave').style.display = 'none';
     return;
   }
+  const driverId = document.getElementById('bulkOrderDriver').value;
+  const existingDates = new Set(Object.values(orders[driverId] || {}).map(o=>o.tanggal));
+  const seenInBatch = new Set();
   const validCount = bulkParsedRows.filter(r=>r.valid).length;
   const invalidCount = bulkParsedRows.length - validCount;
-  wrap.innerHTML = `
-    <div class="section-desc" style="margin-bottom:8px; margin-top:0;">${validCount} baris kebaca${invalidCount ? ', ' + invalidCount + ' baris gagal (bakal dilewatin)' : ''}</div>
-    ${bulkParsedRows.map(r=>`
+  let dupCount = 0;
+
+  const rowsHtml = bulkParsedRows.map(r=>{
+    if(!r.valid){
+      return `
       <div class="list-row">
         <div>
           <div class="l-title">${escapeHtml(r.raw)}</div>
-          ${r.valid ? `<div class="l-sub">${formatTgl(r.tanggal)} · ${rupiah(r.nominal)}</div>` : `<div class="l-sub" style="color:var(--danger);">Gagal dibaca — cek formatnya</div>`}
+          <div class="l-sub" style="color:var(--danger);">Gagal dibaca — cek formatnya</div>
         </div>
-        <div>${r.valid ? '✅' : '❌'}</div>
-      </div>
-    `).join('')}
+        <div>❌</div>
+      </div>`;
+    }
+    const isDupExisting = existingDates.has(r.tanggal);
+    const isDupBatch = seenInBatch.has(r.tanggal);
+    seenInBatch.add(r.tanggal);
+    let dupNote = '';
+    if(isDupExisting || isDupBatch){
+      dupCount++;
+      dupNote = `<div class="l-sub" style="color:var(--orange);">⚠️ ${isDupExisting ? 'Tanggal ini udah ada data driver ini' : 'Tanggal dobel di list ini'}</div>`;
+    }
+    return `
+      <div class="list-row">
+        <div>
+          <div class="l-title">${escapeHtml(r.raw)}</div>
+          <div class="l-sub">${formatTgl(r.tanggal)} · ${rupiah(r.nominal)}</div>
+          ${dupNote}
+        </div>
+        <div>✅</div>
+      </div>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div class="section-desc" style="margin-bottom:8px; margin-top:0;">${validCount} baris kebaca${invalidCount ? ', ' + invalidCount + ' baris gagal (bakal dilewatin)' : ''}${dupCount ? `, <span style="color:var(--orange); font-weight:600;">${dupCount} tanggal dobel</span>` : ''}</div>
+    ${rowsHtml}
   `;
   document.getElementById('btnBulkSave').style.display = validCount > 0 ? 'block' : 'none';
 }
@@ -714,6 +887,13 @@ document.getElementById('btnTheme').addEventListener('click', ()=>{
   document.getElementById('btnTheme').textContent = next === 'dark' ? '☀️' : '🌙';
 });
 initTheme();
+
+/* ===== PWA Service Worker ===== */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(err=> console.log('SW gagal register:', err));
+  });
+}
 </script>
 </body>
 </html>
