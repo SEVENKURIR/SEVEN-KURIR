@@ -167,6 +167,20 @@ function render(){
         ${list.map(o=>`<tr><td>${formatTgl(o.tanggal)}</td><td>${rupiah(o.nominal)}</td></tr>`).join('')}
       </table>` : `<div class="mini-table"><div class="empty-note">Belum ada orderan di bulan ini.</div></div>`;
 
+    const now = new Date();
+    const isBulanBerjalan = (bulan === now.getMonth()+1) && (tahun === now.getFullYear());
+    const estimasiBlock = isBulanBerjalan ? `
+      <div class="tip-note">Belum termasuk tip customer</div>
+      <div class="setoran-item" style="margin:14px 20px 0; padding:12px 14px; background:var(--surface-soft); border-radius:12px;">
+        <div>
+          <div class="periode">Estimasi Setoran di Hari Setoran Nantinya</div>
+          <span class="tag">${persen}% dari bulan ini</span>
+        </div>
+        <div>
+          <div class="bersih">${rupiah(totalSetoranKeAdmin)}</div>
+        </div>
+      </div>` : '';
+
     return `
     <div class="ticket">
       <div class="ticket-head" onclick="toggleDriver('${id}')">
@@ -180,16 +194,7 @@ function render(){
         <div class="mini-stat"><div class="lbl">Bulan</div><div class="val">${rupiah(bulanIni)}</div></div>
         <div class="mini-stat"><div class="lbl">Tahun</div><div class="val">${rupiah(tahunIni)}</div></div>
       </div>
-      <div class="tip-note">Belum termasuk tip customer</div>
-      <div class="setoran-item" style="margin:14px 20px 0; padding:12px 14px; background:var(--surface-soft); border-radius:12px;">
-        <div>
-          <div class="periode">Estimasi Setoran di Hari Setoran Nantinya</div>
-          <span class="tag">${persen}% dari bulan ini</span>
-        </div>
-        <div>
-          <div class="bersih">${rupiah(totalSetoranKeAdmin)}</div>
-        </div>
-      </div>
+      ${estimasiBlock}
       <div class="detail-panel ${isOpen?'open':''}" style="padding-top:14px;">
         <div class="section-desc" style="margin-bottom:8px;">Orderan Harian — ${BULAN_NAMES[bulan-1]} ${tahun}</div>
         ${detailContent}
