@@ -197,7 +197,7 @@
       <div class="card">
         <div class="section-head"><h2>Kelola Driver</h2></div>
         <div class="section-desc">Ubah persen potongan default tiap driver, atau hapus driver.</div>
-        <div id="driverManageList"><div class="empty-note">Memuat...</div></div>
+        <div id="driverManageList" style="max-height:340px; overflow-y:auto;"><div class="empty-note">Memuat...</div></div>
       </div>
       <div class="card">
         <div class="section-head"><h2>Orderan Terbaru</h2></div>
@@ -873,22 +873,27 @@ document.getElementById('btnBulkSave').addEventListener('click', ()=>{
 });
 
 /* ===== Kalkulator Potongan ===== */
-const KALK_PERSEN_LIST = [15, 17, 19, 20];
+const KALK_PERSEN_LIST = [14, 15, 17, 19, 20, 21];
 function renderKalkulator(){
   const total = parseFloat(document.getElementById('kalkTotal').value) || 0;
   const normalPersen = 15;
   const rows = KALK_PERSEN_LIST.map(p=>{
     const potongan = total * (p/100);
     const sisaDriver = total - potongan;
-    const selisihDenda = total * ((p - normalPersen)/100);
-    const dendaLabel = p === normalPersen
-      ? '<span style="color:var(--muted); font-size:11px;">Normal</span>'
-      : `<span style="color:var(--danger); font-size:11px;">+${rupiah(selisihDenda)} denda</span>`;
+    const selisih = total * ((p - normalPersen)/100);
+    let labelHtml;
+    if(p === normalPersen){
+      labelHtml = '<span style="color:var(--muted); font-size:11px;">Normal</span>';
+    } else if(p < normalPersen){
+      labelHtml = `<span style="color:var(--green); font-size:11px;">-${rupiah(Math.abs(selisih))} bonus rajin</span>`;
+    } else {
+      labelHtml = `<span style="color:var(--danger); font-size:11px;">+${rupiah(selisih)} denda</span>`;
+    }
     return `
       <div class="list-row">
         <div>
           <div class="l-title">${p}%</div>
-          <div class="l-sub">${dendaLabel}</div>
+          <div class="l-sub">${labelHtml}</div>
         </div>
         <div style="text-align:right;">
           <div class="l-amount orange">Potongan: ${rupiah(potongan)}</div>

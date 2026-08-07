@@ -140,8 +140,8 @@ function render(){
   });
   document.getElementById('statsRow').innerHTML = `
     <div class="stat-card"><div class="label">Total Driver</div><div class="value">${driverIds.length}</div></div>
-    <div class="stat-card"><div class="label">Total Bulan Ini</div><div class="value mono">${rupiah(totalBulanIni)}</div></div>
-    <div class="stat-card"><div class="label">Total Tahun ini</div><div class="value orange mono">${rupiah(totalTahunIni)}</div></div>
+    <div class="stat-card"><div class="label">Total Bulan Ini</div><div class="value mono">${rupiah(totalBulanIni)}</div><div class="privacy-note">Penghasilan ini dari driver, penghasilan tidak ditampilkan karena bersifat privasi</div></div>
+    <div class="stat-card"><div class="label">Total Tahun ini</div><div class="value orange mono">${rupiah(totalTahunIni)}</div><div class="privacy-note">Penghasilan ini dari driver, penghasilan tidak ditampilkan karena bersifat privasi</div></div>
   `;
 
   renderTopDriverSpotlight(driverIds, bulan, tahun);

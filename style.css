@@ -103,6 +103,7 @@ header.topbar::after{
 .stat-card .value{font-family:'Poppins', sans-serif; font-weight:700; font-size:24px; margin-top:6px; color:var(--text);}
 .stat-card .value.hivis{color:var(--green);}
 .stat-card .value.orange{color:var(--orange);}
+.privacy-note{color:var(--muted); font-size:10px; margin-top:6px; line-height:1.4;}
 
 /* ===== Section ===== */
 .section{max-width:1180px; margin:0 auto; padding:18px 32px 56px;}
@@ -193,7 +194,7 @@ header.topbar::after{
 .error-msg{color:var(--danger); font-size:12px; margin-top:8px; display:none;}
 .success-msg{color:var(--green); font-size:12px; margin-top:8px; display:none;}
 
-.grid-2{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
+.grid-2{display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;}
 @media (max-width:900px){ .grid-2{grid-template-columns:1fr;} }
 
 .list-row{display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); gap:10px;}
