@@ -1106,16 +1106,22 @@ initFontSize();
 
 /* ===== Warna Aksen ===== */
 const ACCENT_PRESETS = {
-  kuning: { yellow:'#FFC629', deep:'#E6A800' },
-  biru: { yellow:'#4C9AFF', deep:'#2B6FD1' },
-  hijau: { yellow:'#3ECF8E', deep:'#1FA870' },
-  ungu: { yellow:'#B18CFF', deep:'#8B5CF6' },
-  pink: { yellow:'#FF8CC6', deep:'#E85A9E' }
+  kuning: { yellow:'#FFC629', deep:'#E6A800', gold1:'#FFE9A8', gold2:'#FFC629', gold3:'#E0A030', gold4:'#9C6B12', glow:'255,198,41' },
+  biru:   { yellow:'#4C9AFF', deep:'#2B6FD1', gold1:'#AFD3FF', gold2:'#4C9AFF', gold3:'#2B6FD1', gold4:'#1B4A8F', glow:'76,154,255' },
+  hijau:  { yellow:'#3ECF8E', deep:'#1FA870', gold1:'#A8F0D1', gold2:'#3ECF8E', gold3:'#1FA870', gold4:'#0F6B48', glow:'62,207,142' },
+  ungu:   { yellow:'#B18CFF', deep:'#8B5CF6', gold1:'#DCCBFF', gold2:'#B18CFF', gold3:'#8B5CF6', gold4:'#5B3BA8', glow:'177,140,255' },
+  pink:   { yellow:'#FF8CC6', deep:'#E85A9E', gold1:'#FFC9E3', gold2:'#FF8CC6', gold3:'#E85A9E', gold4:'#A83568', glow:'255,140,198' }
 };
 function applyAccent(name){
   const p = ACCENT_PRESETS[name] || ACCENT_PRESETS.kuning;
-  document.documentElement.style.setProperty('--yellow', p.yellow);
-  document.documentElement.style.setProperty('--yellow-deep', p.deep);
+  const root = document.documentElement.style;
+  root.setProperty('--yellow', p.yellow);
+  root.setProperty('--yellow-deep', p.deep);
+  root.setProperty('--gold-1', p.gold1);
+  root.setProperty('--gold-2', p.gold2);
+  root.setProperty('--gold-3', p.gold3);
+  root.setProperty('--gold-4', p.gold4);
+  root.setProperty('--glow-rgb', p.glow);
   localStorage.setItem('sk_accent', name);
   document.querySelectorAll('.accent-dot').forEach(d=> d.classList.toggle('active', d.dataset.accent === name));
 }
