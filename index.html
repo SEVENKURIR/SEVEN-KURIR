@@ -21,7 +21,19 @@
       <div class="brand-sub">Dashboard Pendapatan Driver</div>
     </div>
   </a>
-  <div style="display:flex; gap:10px; align-items:center;">
+  <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+    <div class="font-ctrl">
+      <button id="btnFontMinus" title="Perkecil teks">A−</button>
+      <button id="btnFontPlus" title="Perbesar teks">A+</button>
+    </div>
+    <div class="accent-picker">
+      <div class="accent-dot" data-accent="kuning" style="background:#FFC629;" title="Kuning"></div>
+      <div class="accent-dot" data-accent="biru" style="background:#4C9AFF;" title="Biru"></div>
+      <div class="accent-dot" data-accent="hijau" style="background:#3ECF8E;" title="Hijau"></div>
+      <div class="accent-dot" data-accent="ungu" style="background:#B18CFF;" title="Ungu"></div>
+      <div class="accent-dot" data-accent="pink" style="background:#FF8CC6;" title="Pink"></div>
+    </div>
+    <button class="theme-toggle bell-btn" id="btnBell" title="Pengumuman">🔔<span class="bell-dot" id="bellDot"></span></button>
     <button class="theme-toggle" id="btnTheme" title="Ganti tema">🌙</button>
     <a href="admin.html" class="btn btn-outline btn-sm">Admin</a>
   </div>
@@ -265,6 +277,68 @@ document.getElementById('btnTheme').addEventListener('click', ()=>{
   document.getElementById('btnTheme').textContent = next === 'dark' ? '☀️' : '🌙';
 });
 initTheme();
+
+/* ===== Font Size ===== */
+const FONT_SCALES = [0.9, 1, 1.1, 1.2];
+function applyFontScale(scale){
+  document.body.style.zoom = scale;
+  localStorage.setItem('sk_fontscale', scale);
+}
+function initFontSize(){
+  const saved = parseFloat(localStorage.getItem('sk_fontscale')) || 1;
+  applyFontScale(saved);
+}
+document.getElementById('btnFontMinus')?.addEventListener('click', ()=>{
+  const cur = parseFloat(document.body.style.zoom) || 1;
+  const idx = Math.max(0, FONT_SCALES.indexOf(cur) - 1);
+  applyFontScale(FONT_SCALES[idx] || FONT_SCALES[0]);
+});
+document.getElementById('btnFontPlus')?.addEventListener('click', ()=>{
+  const cur = parseFloat(document.body.style.zoom) || 1;
+  const idx = Math.min(FONT_SCALES.length-1, FONT_SCALES.indexOf(cur) + 1);
+  applyFontScale(FONT_SCALES[idx] || FONT_SCALES[FONT_SCALES.length-1]);
+});
+initFontSize();
+
+/* ===== Warna Aksen ===== */
+const ACCENT_PRESETS = {
+  kuning: { yellow:'#FFC629', deep:'#E6A800' },
+  biru: { yellow:'#4C9AFF', deep:'#2B6FD1' },
+  hijau: { yellow:'#3ECF8E', deep:'#1FA870' },
+  ungu: { yellow:'#B18CFF', deep:'#8B5CF6' },
+  pink: { yellow:'#FF8CC6', deep:'#E85A9E' }
+};
+function applyAccent(name){
+  const p = ACCENT_PRESETS[name] || ACCENT_PRESETS.kuning;
+  document.documentElement.style.setProperty('--yellow', p.yellow);
+  document.documentElement.style.setProperty('--yellow-deep', p.deep);
+  localStorage.setItem('sk_accent', name);
+  document.querySelectorAll('.accent-dot').forEach(d=> d.classList.toggle('active', d.dataset.accent === name));
+}
+function initAccent(){
+  applyAccent(localStorage.getItem('sk_accent') || 'kuning');
+}
+document.querySelectorAll('.accent-dot').forEach(dot=>{
+  dot.addEventListener('click', ()=> applyAccent(dot.dataset.accent));
+});
+initAccent();
+
+/* ===== Notifikasi Pengumuman ===== */
+db.ref('pengumuman').on('value', snap=>{
+  const p = snap.val();
+  const bellDot = document.getElementById('bellDot');
+  if(!p || !p.teks){ if(bellDot) bellDot.classList.remove('show'); return; }
+  const lastSeen = parseInt(localStorage.getItem('sk_lastAnnouncement') || '0');
+  if(bellDot) bellDot.classList.toggle('show', p.waktu > lastSeen);
+  window._pengumumanAktif = p;
+});
+document.getElementById('btnBell')?.addEventListener('click', ()=>{
+  const p = window._pengumumanAktif;
+  if(!p || !p.teks){ alert('Belum ada pengumuman.'); return; }
+  alert('📢 Pengumuman:\n\n' + p.teks);
+  localStorage.setItem('sk_lastAnnouncement', p.waktu);
+  document.getElementById('bellDot')?.classList.remove('show');
+});
 
 /* ===== PWA Service Worker ===== */
 if('serviceWorker' in navigator){

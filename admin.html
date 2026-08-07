@@ -46,7 +46,18 @@
         <div class="brand-sub">Panel Admin</div>
       </div>
     </a>
-    <div style="display:flex; gap:10px;">
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+      <div class="font-ctrl">
+        <button id="btnFontMinus" title="Perkecil teks">A−</button>
+        <button id="btnFontPlus" title="Perbesar teks">A+</button>
+      </div>
+      <div class="accent-picker">
+        <div class="accent-dot" data-accent="kuning" style="background:#FFC629;" title="Kuning"></div>
+        <div class="accent-dot" data-accent="biru" style="background:#4C9AFF;" title="Biru"></div>
+        <div class="accent-dot" data-accent="hijau" style="background:#3ECF8E;" title="Hijau"></div>
+        <div class="accent-dot" data-accent="ungu" style="background:#B18CFF;" title="Ungu"></div>
+        <div class="accent-dot" data-accent="pink" style="background:#FF8CC6;" title="Pink"></div>
+      </div>
       <button class="theme-toggle" id="btnTheme" title="Ganti tema">🌙</button>
       <a href="index.html" class="btn btn-outline btn-sm">Lihat Dashboard</a>
       <a href="utang.html" class="btn btn-outline btn-sm">Login Owner</a>
@@ -276,6 +287,40 @@
     </div>
   </section>
 
+  <!-- ==== Pengumuman ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head"><h2>Pengumuman buat Driver</h2></div>
+      <div class="section-desc">Muncul sebagai notifikasi 🔔 di dashboard publik. Kosongin & simpan buat hapus pengumuman.</div>
+      <div class="field">
+        <textarea id="pengumumanText" rows="3" placeholder="Contoh: Setoran periode ini diundur ke tanggal 20." style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:11px 13px; border-radius:10px; font-size:14px; font-family:'Inter', sans-serif; resize:vertical;"></textarea>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-primary" id="btnSavePengumuman" style="flex:1;">Simpan Pengumuman</button>
+        <button class="btn btn-danger" id="btnClearPengumuman">Hapus</button>
+      </div>
+      <div class="success-msg" id="pengumumanSuccess">Pengumuman tersimpan.</div>
+    </div>
+  </section>
+
+  <!-- ==== Analisis Hari ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head"><h2>Analisis Hari Ramai/Sepi</h2></div>
+      <div class="section-desc">Rata-rata nominal per orderan, dikelompokkan per hari dalam seminggu (semua driver, semua waktu).</div>
+      <div id="analisisHariResult"><div class="empty-note">Memuat...</div></div>
+    </div>
+  </section>
+
+  <!-- ==== Riwayat Login ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head"><h2>Riwayat Login</h2></div>
+      <div class="section-desc">15 login terakhir ke panel admin ini.</div>
+      <div id="loginHistoryList" style="max-height:300px; overflow-y:auto;"><div class="empty-note">Memuat...</div></div>
+    </div>
+  </section>
+
   <footer>Seven Kurir · Panel Admin · data tersimpan di Firebase</footer>
 </div>
 
@@ -294,8 +339,22 @@ function flash(el){ el.style.display='block'; setTimeout(()=> el.style.display='
 let drivers = {};
 let orders = {};
 let activityLog = {};
+let persenHistory = {};
 let bulkParsedRows = [];
 let editingOrderId = null;
+
+function renderPersenHistoryLine(driverId){
+  const h = persenHistory[driverId];
+  if(!h) return '';
+  const list = Object.values(h).sort((a,b)=> b.waktu - a.waktu).slice(0,3);
+  if(!list.length) return '';
+  const parts = list.map(x=>{
+    const d = new Date(x.waktu);
+    const tgl = d.toLocaleDateString('id-ID', {day:'numeric', month:'short'});
+    return `${x.persenLama ?? '?'}%→${x.persenBaru}% (${tgl})`;
+  });
+  return 'Riwayat: ' + parts.join(', ');
+}
 
 const BULAN_MAP = {
   jan:1, januari:1, feb:2, februari:2, mar:3, maret:3, apr:4, april:4,
@@ -304,17 +363,36 @@ const BULAN_MAP = {
 };
 
 /* ===== AUTH ===== */
+let loginLogged = false;
 auth.onAuthStateChanged(user=>{
   if(user){
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('adminPanel').style.display='block';
     document.getElementById('loggedInAs').textContent = 'Masuk sebagai ' + user.email;
     attachListeners();
+    if(!loginLogged){
+      loginLogged = true;
+      db.ref('loginHistory').push({ email: user.email, waktu: Date.now(), device: parseDeviceLabel(navigator.userAgent) });
+    }
   } else {
     document.getElementById('loginScreen').style.display='flex';
     document.getElementById('adminPanel').style.display='none';
+    loginLogged = false;
   }
 });
+function parseDeviceLabel(ua){
+  let browser = 'Browser';
+  if(/Edg/.test(ua)) browser = 'Edge';
+  else if(/Chrome/.test(ua)) browser = 'Chrome';
+  else if(/Safari/.test(ua)) browser = 'Safari';
+  else if(/Firefox/.test(ua)) browser = 'Firefox';
+  let os = 'Unknown';
+  if(/Windows/.test(ua)) os = 'Windows';
+  else if(/Android/.test(ua)) os = 'Android';
+  else if(/iPhone|iPad/.test(ua)) os = 'iOS';
+  else if(/Mac/.test(ua)) os = 'Mac';
+  return `${browser} di ${os}`;
+}
 
 document.getElementById('btnDoLogin').addEventListener('click', ()=>{
   const email = document.getElementById('loginEmail').value.trim();
@@ -363,14 +441,95 @@ function attachListeners(){
     renderRecentOrders();
     updateSetoranPreview();
     renderManageOrderList();
+    renderAnalisisHari();
   });
   db.ref('activityLog').on('value', snap=>{
     activityLog = snap.val() || {};
     renderActivityLog();
   });
+  db.ref('persenHistory').on('value', snap=>{
+    persenHistory = snap.val() || {};
+    renderDriverManage();
+  });
+  db.ref('loginHistory').on('value', snap=>{
+    renderLoginHistory(snap.val() || {});
+  });
+  db.ref('pengumuman').on('value', snap=>{
+    const p = snap.val();
+    const el = document.getElementById('pengumumanText');
+    if(el) el.value = p ? p.teks : '';
+  });
 }
 
-/* ===== Log Aktivitas ===== */
+/* ===== Riwayat Login ===== */
+function renderLoginHistory(logs){
+  const wrap = document.getElementById('loginHistoryList');
+  if(!wrap) return;
+  const list = Object.values(logs).sort((a,b)=> b.waktu - a.waktu).slice(0, 15);
+  wrap.innerHTML = list.length ? list.map(l=>`
+    <div class="list-row">
+      <div>
+        <div class="l-title">${escapeHtml(l.email)}</div>
+        <div class="l-sub">${escapeHtml(l.device || 'Unknown device')} · ${waktuRelatif(l.waktu)}</div>
+      </div>
+    </div>
+  `).join('') : `<div class="empty-note">Belum ada riwayat login.</div>`;
+}
+
+/* ===== Pengumuman ===== */
+document.getElementById('btnSavePengumuman')?.addEventListener('click', ()=>{
+  const teks = document.getElementById('pengumumanText').value.trim();
+  db.ref('pengumuman').set({ teks, waktu: Date.now() }).then(()=>{
+    flash(document.getElementById('pengumumanSuccess'));
+    logActivity('Update pengumuman driver');
+  });
+});
+document.getElementById('btnClearPengumuman')?.addEventListener('click', ()=>{
+  if(!confirm('Hapus pengumuman aktif?')) return;
+  db.ref('pengumuman').set({ teks: '', waktu: Date.now() });
+  document.getElementById('pengumumanText').value = '';
+});
+
+/* ===== Analisis Hari Ramai/Sepi ===== */
+function renderAnalisisHari(){
+  const wrap = document.getElementById('analisisHariResult');
+  if(!wrap) return;
+  const HARI_NAMES = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const totalPerHari = [0,0,0,0,0,0,0];
+  const countPerHari = [0,0,0,0,0,0,0];
+  Object.values(orders).forEach(driverOrders=>{
+    Object.values(driverOrders).forEach(o=>{
+      const d = new Date(o.tanggal + 'T00:00:00');
+      const hari = d.getDay();
+      totalPerHari[hari] += Number(o.nominal || 0);
+      countPerHari[hari]++;
+    });
+  });
+  const avgPerHari = totalPerHari.map((t,i)=> countPerHari[i] ? t/countPerHari[i] : 0);
+  const hasData = avgPerHari.some(v=>v>0);
+  if(!hasData){ wrap.innerHTML = `<div class="empty-note">Belum cukup data buat dianalisis.</div>`; return; }
+  let maxIdx = 0, minIdx = 0;
+  avgPerHari.forEach((v,i)=>{
+    if(v > avgPerHari[maxIdx]) maxIdx = i;
+    if(countPerHari[i] > 0 && (countPerHari[minIdx]===0 || v < avgPerHari[minIdx])) minIdx = i;
+  });
+  wrap.innerHTML = `
+    <div class="list-row">
+      <div>
+        <div class="l-title">📈 Hari Paling Rame</div>
+        <div class="l-sub">${HARI_NAMES[maxIdx]} · rata-rata per orderan</div>
+      </div>
+      <div class="l-amount hivis">${rupiah(avgPerHari[maxIdx])}</div>
+    </div>
+    <div class="list-row">
+      <div>
+        <div class="l-title">📉 Hari Paling Sepi</div>
+        <div class="l-sub">${HARI_NAMES[minIdx]} · rata-rata per orderan</div>
+      </div>
+      <div class="l-amount orange">${rupiah(avgPerHari[minIdx])}</div>
+    </div>
+  `;
+}
 function logActivity(aksi){
   const admin = (auth.currentUser && auth.currentUser.email) || 'Admin';
   db.ref('activityLog').push({ waktu: Date.now(), admin, aksi });
@@ -458,6 +617,7 @@ function renderDriverManage(){
         <input type="date" value="${d.aktifSampai || ''}" style="padding:5px 7px; border:1px solid var(--line); border-radius:7px; font-size:11.5px;" onchange="updateDriverAktif('${id}', 'aktifSampai', this.value)">
         <span style="font-size:10.5px; color:var(--muted);">(kosong = ${!d.aktifDari ? 'dari awal' : ''}${!d.aktifDari && !d.aktifSampai ? ' / ' : ''}${!d.aktifSampai ? 'masih aktif' : ''})</span>
       </div>
+      <div style="font-size:10.5px; color:var(--muted);">${renderPersenHistoryLine(id)}</div>
     </div>`;
   }).join('') : `<div class="empty-note">Belum ada driver.</div>`;
 }
@@ -471,6 +631,8 @@ function updateDriverPersen(id, val){
   const persen = parseFloat(val);
   if(isNaN(persen)) return;
   const nama = drivers[id] ? drivers[id].name : id;
+  const persenLama = drivers[id] ? (drivers[id].persen ?? 15) : null;
+  db.ref('persenHistory/'+id).push({ persenLama, persenBaru: persen, waktu: Date.now() });
   db.ref(`drivers/${id}/persen`).set(persen).then(()=>{
     logActivity(`Ubah persen potongan ${nama} jadi ${persen}%`);
   });
@@ -920,6 +1082,47 @@ document.getElementById('btnTheme').addEventListener('click', ()=>{
   document.getElementById('btnTheme').textContent = next === 'dark' ? '☀️' : '🌙';
 });
 initTheme();
+
+/* ===== Font Size ===== */
+const FONT_SCALES = [0.9, 1, 1.1, 1.2];
+function applyFontScale(scale){
+  document.body.style.zoom = scale;
+  localStorage.setItem('sk_fontscale', scale);
+}
+function initFontSize(){
+  applyFontScale(parseFloat(localStorage.getItem('sk_fontscale')) || 1);
+}
+document.getElementById('btnFontMinus')?.addEventListener('click', ()=>{
+  const cur = parseFloat(document.body.style.zoom) || 1;
+  const idx = Math.max(0, FONT_SCALES.indexOf(cur) - 1);
+  applyFontScale(FONT_SCALES[idx] || FONT_SCALES[0]);
+});
+document.getElementById('btnFontPlus')?.addEventListener('click', ()=>{
+  const cur = parseFloat(document.body.style.zoom) || 1;
+  const idx = Math.min(FONT_SCALES.length-1, FONT_SCALES.indexOf(cur) + 1);
+  applyFontScale(FONT_SCALES[idx] || FONT_SCALES[FONT_SCALES.length-1]);
+});
+initFontSize();
+
+/* ===== Warna Aksen ===== */
+const ACCENT_PRESETS = {
+  kuning: { yellow:'#FFC629', deep:'#E6A800' },
+  biru: { yellow:'#4C9AFF', deep:'#2B6FD1' },
+  hijau: { yellow:'#3ECF8E', deep:'#1FA870' },
+  ungu: { yellow:'#B18CFF', deep:'#8B5CF6' },
+  pink: { yellow:'#FF8CC6', deep:'#E85A9E' }
+};
+function applyAccent(name){
+  const p = ACCENT_PRESETS[name] || ACCENT_PRESETS.kuning;
+  document.documentElement.style.setProperty('--yellow', p.yellow);
+  document.documentElement.style.setProperty('--yellow-deep', p.deep);
+  localStorage.setItem('sk_accent', name);
+  document.querySelectorAll('.accent-dot').forEach(d=> d.classList.toggle('active', d.dataset.accent === name));
+}
+document.querySelectorAll('.accent-dot').forEach(dot=>{
+  dot.addEventListener('click', ()=> applyAccent(dot.dataset.accent));
+});
+applyAccent(localStorage.getItem('sk_accent') || 'kuning');
 
 /* ===== PWA Service Worker ===== */
 if('serviceWorker' in navigator){

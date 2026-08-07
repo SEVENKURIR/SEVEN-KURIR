@@ -153,8 +153,11 @@ header.topbar::after{
 .mini-stat .lbl{color:var(--muted); font-size:9.5px; text-transform:uppercase; letter-spacing:0.6px; font-weight:700;}
 .mini-stat .val{font-family:'JetBrains Mono', monospace; font-weight:700; font-size:13.5px; margin-top:5px; color:var(--text);}
 
-.detail-panel{display:none; padding:14px 20px 18px;}
-.detail-panel.open{display:block;}
+.detail-panel{max-height:0; opacity:0; overflow:hidden; padding:0 20px; transition:max-height .35s cubic-bezier(.2,.8,.2,1), opacity .3s ease, padding .35s ease;}
+.detail-panel.open{max-height:2000px; opacity:1; padding:14px 20px 18px;}
+
+body{animation:sk-fade-in .4s ease;}
+@keyframes sk-fade-in{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
 .detail-tabs{display:flex; gap:6px; margin-bottom:10px;}
 .detail-tab{
   flex:1; text-align:center; padding:7px; border-radius:9px; font-size:11.5px; font-weight:700;
@@ -245,6 +248,32 @@ footer{
   background:var(--surface); cursor:pointer; font-size:16px;
   display:flex; align-items:center; justify-content:center; flex-shrink:0;
 }
+
+/* ===== Font size control ===== */
+.font-ctrl{display:flex; align-items:center; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--surface);}
+.font-ctrl button{
+  border:none; background:transparent; cursor:pointer; padding:8px 11px; font-weight:700; color:var(--text);
+  font-family:'Inter', sans-serif; font-size:13px;
+}
+.font-ctrl button:hover{background:var(--surface-soft);}
+.font-ctrl button:not(:last-child){border-right:1px solid var(--line);}
+
+/* ===== Pilihan warna tema ===== */
+.accent-picker{display:flex; gap:6px; align-items:center;}
+.accent-dot{
+  width:22px; height:22px; border-radius:50%; cursor:pointer; border:2px solid transparent;
+  transition:transform .15s ease;
+}
+.accent-dot:hover{transform:scale(1.15);}
+.accent-dot.active{border-color:var(--text);}
+
+/* ===== Notifikasi bell ===== */
+.bell-btn{position:relative;}
+.bell-dot{
+  position:absolute; top:5px; right:6px; width:8px; height:8px; border-radius:50%;
+  background:var(--danger); display:none;
+}
+.bell-dot.show{display:block;}
 
 /* ===== Stat card kecil buat perbandingan ===== */
 .compare-note{font-size:11px; margin-top:4px; font-weight:600;}
