@@ -1,0 +1,40 @@
+{
+  "rules": {
+    "drivers": {
+      ".read": true,
+      ".write": "auth != null && (auth.uid === 'BKAhNYWwNFbHe5QkYGraNPpmYBe2' || auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3')"
+    },
+    "orders": {
+      ".read": true,
+      ".write": "auth != null && (auth.uid === 'BKAhNYWwNFbHe5QkYGraNPpmYBe2' || auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3')"
+    },
+    "setoran": {
+      ".read": "auth != null && (auth.uid === 'BKAhNYWwNFbHe5QkYGraNPpmYBe2' || auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3')",
+      ".write": "auth != null && (auth.uid === 'BKAhNYWwNFbHe5QkYGraNPpmYBe2' || auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3')"
+    },
+    "activityLog": {
+      ".read": "auth != null && (auth.uid === 'BKAhNYWwNFbHe5QkYGraNPpmYBe2' || auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3')",
+      ".write": "auth != null && (auth.uid === 'BKAhNYWwNFbHe5QkYGraNPpmYBe2' || auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3')"
+    },
+    "persenHistory": {
+      ".read": true,
+      ".write": "auth != null && (auth.uid === 'BKAhNYWwNFbHe5QkYGraNPpmYBe2' || auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3')"
+    },
+    "pengumuman": {
+      ".read": true,
+      ".write": "auth != null && (auth.uid === 'BKAhNYWwNFbHe5QkYGraNPpmYBe2' || auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3')"
+    },
+    "loginHistory": {
+      ".read": "auth != null && (auth.uid === 'BKAhNYWwNFbHe5QkYGraNPpmYBe2' || auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3')",
+      ".write": "auth != null && (auth.uid === 'BKAhNYWwNFbHe5QkYGraNPpmYBe2' || auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3')"
+    },
+    "utang": {
+      ".read": "auth != null && auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3'",
+      ".write": "auth != null && auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3'"
+    },
+    "cashflowAdmin": {
+      ".read": "auth != null && auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3'",
+      ".write": "auth != null && auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3'"
+    }
+  }
+}
