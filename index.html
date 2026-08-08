@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="LOGO%20SEVEN%20KURIR.png">
 </head>
 <body>
+<div id="skWatermark"></div>
 
 <header class="topbar">
   <a class="brand" href="index.html">
@@ -59,7 +60,18 @@
   </div>
   <div class="section-desc">Klik nama driver buat lihat rincian harian & riwayat setoran.</div>
   <div class="tickets" id="ticketsWrap">
-    <div class="empty-note">Memuat data...</div>
+    <div class="ticket" style="animation:none;">
+      <div class="ticket-head"><div class="skel" style="width:55%; height:18px;"></div></div>
+      <div class="mini-stats"><div class="mini-stat"><div class="skel" style="width:70%; height:14px; margin:0 auto;"></div></div><div class="mini-stat"><div class="skel" style="width:70%; height:14px; margin:0 auto;"></div></div></div>
+    </div>
+    <div class="ticket" style="animation:none;">
+      <div class="ticket-head"><div class="skel" style="width:55%; height:18px;"></div></div>
+      <div class="mini-stats"><div class="mini-stat"><div class="skel" style="width:70%; height:14px; margin:0 auto;"></div></div><div class="mini-stat"><div class="skel" style="width:70%; height:14px; margin:0 auto;"></div></div></div>
+    </div>
+    <div class="ticket" style="animation:none;">
+      <div class="ticket-head"><div class="skel" style="width:55%; height:18px;"></div></div>
+      <div class="mini-stats"><div class="mini-stat"><div class="skel" style="width:70%; height:14px; margin:0 auto;"></div></div><div class="mini-stat"><div class="skel" style="width:70%; height:14px; margin:0 auto;"></div></div></div>
+    </div>
   </div>
 </section>
 
@@ -133,9 +145,14 @@ function isDriverActiveInPeriod(driver, bulan, tahun){
   const monthStart = `${tahun}-${String(bulan).padStart(2,'0')}-01`;
   const lastDay = new Date(tahun, bulan, 0).getDate();
   const monthEnd = `${tahun}-${String(bulan).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
-  const aktifDari = driver.aktifDari || '0000-01-01';
-  const aktifSampai = driver.aktifSampai || '9999-12-31';
-  return aktifDari <= monthEnd && aktifSampai >= monthStart;
+  const periods = driver.periodeAktif
+    ? Object.values(driver.periodeAktif)
+    : [{ dari: driver.aktifDari, sampai: driver.aktifSampai }];
+  return periods.some(p=>{
+    const dari = p.dari || '0000-01-01';
+    const sampai = p.sampai || '9999-12-31';
+    return dari <= monthEnd && sampai >= monthStart;
+  });
 }
 
 function render(){
@@ -277,6 +294,33 @@ document.getElementById('btnTheme').addEventListener('click', ()=>{
   document.getElementById('btnTheme').textContent = next === 'dark' ? '☀️' : '🌙';
 });
 initTheme();
+
+/* ===== Watermark & Deterrent Screenshot ===== */
+/* CATATAN: ini bukan proteksi 100% (gak ada cara ngeblok screenshot beneran di web),
+   ini cuma bikin susah orang iseng + nandain kapan halaman ini diakses kalau discreenshot & disebar. */
+function renderWatermark(){
+  const wm = document.getElementById('skWatermark');
+  if(!wm) return;
+  const now = new Date();
+  const label = `SEVEN KURIR • ${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}`;
+  let html = '';
+  for(let i=0;i<40;i++) html += `<span>${label}</span>`;
+  wm.innerHTML = html;
+}
+renderWatermark();
+setInterval(renderWatermark, 60000);
+
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('keydown', e=>{
+  const k = e.key.toLowerCase();
+  if(k === 'f12') e.preventDefault();
+  if((e.ctrlKey || e.metaKey) && e.shiftKey && (k==='i' || k==='c' || k==='j')) e.preventDefault();
+  if((e.ctrlKey || e.metaKey) && k==='u') e.preventDefault();
+  if((e.ctrlKey || e.metaKey) && k==='s') e.preventDefault();
+});
+document.addEventListener('visibilitychange', ()=>{
+  document.body.classList.toggle('privacy-blur', document.hidden);
+});
 
 /* ===== Font Size ===== */
 const FONT_SCALES = [0.9, 1, 1.1, 1.2];

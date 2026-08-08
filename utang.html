@@ -100,7 +100,9 @@
             <option value="semua">Semua</option>
           </select>
         </div>
-        <div id="utangList" style="max-height:460px; overflow-y:auto;"><div class="empty-note">Memuat...</div></div>
+        <div id="utangList" style="max-height:460px; overflow-y:auto;"><div class="skeleton-row"><div class="skel" style="width:45%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
+      <div class="skeleton-row"><div class="skel" style="width:60%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
+      <div class="skeleton-row"><div class="skel" style="width:38%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div></div>
       </div>
 
     </div>
@@ -112,6 +114,11 @@
       <div class="section-head"><h2>Cashflow Pribadi Admin</h2></div>
       <div class="section-desc">Catatan pengeluaran pribadi admin — nggak nyambung ke data driver.</div>
       <div class="stats-row" id="cfStats" style="margin-bottom:18px;"></div>
+
+      <div class="card" style="box-shadow:none; border:1px solid var(--line); margin-bottom:20px;">
+        <div class="section-desc" style="margin-top:0; margin-bottom:10px;">Tren Pengeluaran Bulanan (6 bulan terakhir)</div>
+        <canvas id="trenPengeluaranChart" height="220"></canvas>
+      </div>
 
       <div class="card" style="box-shadow:none; border:1px solid var(--line); margin-bottom:20px;">
         <div class="section-desc" style="margin-top:0; margin-bottom:10px;">Breakdown Pengeluaran per Kategori (bulan ini)</div>
@@ -128,9 +135,18 @@
           <select id="cfKategori"></select>
         </div>
       </div>
-      <div class="field">
-        <label>Tanggal</label>
-        <input type="date" id="cfTanggal">
+      <div class="field-row">
+        <div class="field">
+          <label>Tanggal</label>
+          <input type="date" id="cfTanggal">
+        </div>
+        <div class="field">
+          <label>Jenis</label>
+          <select id="cfJenis">
+            <option value="wajib">Wajib</option>
+            <option value="opsional">Opsional</option>
+          </select>
+        </div>
       </div>
       <div class="field">
         <label>Catatan</label>
@@ -399,8 +415,9 @@ document.getElementById('btnAddCashflow').addEventListener('click', ()=>{
   const tanggal = document.getElementById('cfTanggal').value;
   const catatan = document.getElementById('cfCatatan').value.trim();
   const kategori = document.getElementById('cfKategori').value;
+  const jenis = document.getElementById('cfJenis').value;
   if(!jumlah || !tanggal) return;
-  db.ref('cashflowAdmin').push({ jumlah, tanggal, catatan, kategori }).then(()=>{
+  db.ref('cashflowAdmin').push({ jumlah, tanggal, catatan, kategori, jenis }).then(()=>{
     document.getElementById('cfJumlah').value='';
     document.getElementById('cfCatatan').value='';
   });
@@ -414,8 +431,11 @@ function renderCashflow(){
   const prefixBulanIni = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const prevDate = new Date(now.getFullYear(), now.getMonth()-1, 1);
   const prefixBulanLalu = `${prevDate.getFullYear()}-${String(prevDate.getMonth()+1).padStart(2,'0')}`;
-  const keluarBulanIni = list.filter(c=>c.tanggal.startsWith(prefixBulanIni)).reduce((s,c)=>s+Number(c.jumlah),0);
+  const listBulanIni = list.filter(c=>c.tanggal.startsWith(prefixBulanIni));
+  const keluarBulanIni = listBulanIni.reduce((s,c)=>s+Number(c.jumlah),0);
   const keluarBulanLalu = list.filter(c=>c.tanggal.startsWith(prefixBulanLalu)).reduce((s,c)=>s+Number(c.jumlah),0);
+  const wajibBulanIni = listBulanIni.filter(c=>c.jenis !== 'opsional').reduce((s,c)=>s+Number(c.jumlah),0);
+  const opsionalBulanIni = listBulanIni.filter(c=>c.jenis === 'opsional').reduce((s,c)=>s+Number(c.jumlah),0);
   let compareHtml = '';
   if(keluarBulanLalu > 0){
     const pct = Math.round(((keluarBulanIni - keluarBulanLalu) / keluarBulanLalu) * 100);
@@ -425,13 +445,15 @@ function renderCashflow(){
 
   document.getElementById('cfStats').innerHTML = `
     <div class="stat-card"><div class="label">Pengeluaran Bulan Ini</div><div class="value orange mono">${rupiah(keluarBulanIni)}</div>${compareHtml}</div>
+    <div class="stat-card"><div class="label">Wajib Bulan Ini</div><div class="value mono">${rupiah(wajibBulanIni)}</div></div>
+    <div class="stat-card"><div class="label">Opsional Bulan Ini</div><div class="value mono" style="color:#2B6FD1;">${rupiah(opsionalBulanIni)}</div></div>
     <div class="stat-card"><div class="label">Total Semua Pengeluaran</div><div class="value mono">${rupiah(totalSemua)}</div></div>
   `;
   const wrap = document.getElementById('cashflowList');
   wrap.innerHTML = list.length ? list.map(c=>`
     <div class="list-row">
       <div>
-        <div class="l-title">${escapeHtml(c.catatan || 'Pengeluaran')}</div>
+        <div class="l-title">${escapeHtml(c.catatan || 'Pengeluaran')}<span class="jenis-tag ${c.jenis==='opsional'?'tag-opsional':'tag-wajib'}">${c.jenis==='opsional'?'Opsional':'Wajib'}</span></div>
         <div class="l-sub">${formatTgl(c.tanggal)} · ${escapeHtml(c.kategori || 'Lainnya')}</div>
       </div>
       <div style="display:flex; align-items:center; gap:10px;">
@@ -444,9 +466,34 @@ function renderCashflow(){
   updateCharts(list);
 }
 
-/* ===== Chart Breakdown Kategori ===== */
+/* ===== Chart Tren Bulanan + Breakdown Kategori ===== */
+let trenPengeluaranInstance = null;
 function updateCharts(list){
   const now = new Date();
+
+  // Tren 6 bulan terakhir
+  const labels = [], keys = [];
+  for(let i=5; i>=0; i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    keys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    labels.push(BULAN_SHORT[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2));
+  }
+  const dataTren = keys.map(key => list.filter(c=>c.tanggal.startsWith(key)).reduce((s,c)=>s+Number(c.jumlah),0));
+  const trenCanvas = document.getElementById('trenPengeluaranChart');
+  if(trenCanvas){
+    if(trenPengeluaranInstance) trenPengeluaranInstance.destroy();
+    trenPengeluaranInstance = new Chart(trenCanvas.getContext('2d'), {
+      type: 'bar',
+      data: { labels, datasets: [{ label:'Pengeluaran', data: dataTren, backgroundColor:'#FF7A45', borderRadius:6 }] },
+      options: {
+        responsive: true,
+        plugins: { legend: { display:false } },
+        scales: { y: { ticks: { callback: v => 'Rp' + (v/1000) + 'rb' } } }
+      }
+    });
+  }
+
+  // Breakdown kategori bulan ini
   const prefixBulanIni = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const keluarBulanIni = list.filter(c=>c.tanggal.startsWith(prefixBulanIni));
   const perKategori = {};
@@ -454,19 +501,19 @@ function updateCharts(list){
     const k = c.kategori || 'Lainnya';
     perKategori[k] = (perKategori[k]||0) + Number(c.jumlah);
   });
-  const labels = Object.keys(perKategori);
-  const values = labels.map(k=>perKategori[k]);
-  const colors = labels.map(k=> KATEGORI_WARNA[k] || '#6B7280');
+  const dLabels = Object.keys(perKategori);
+  const dValues = dLabels.map(k=>perKategori[k]);
+  const dColors = dLabels.map(k=> KATEGORI_WARNA[k] || '#6B7280');
 
   const donutCtx = document.getElementById('donutChart').getContext('2d');
   if(donutChartInstance) donutChartInstance.destroy();
   donutChartInstance = new Chart(donutCtx, {
     type: 'doughnut',
     data: {
-      labels: labels.length ? labels : ['Belum ada data'],
+      labels: dLabels.length ? dLabels : ['Belum ada data'],
       datasets: [{
-        data: values.length ? values : [1],
-        backgroundColor: values.length ? colors : ['#EDEEF1'],
+        data: dValues.length ? dValues : [1],
+        backgroundColor: dValues.length ? dColors : ['#EDEEF1'],
         borderWidth: 0
       }]
     },
@@ -507,6 +554,11 @@ if('serviceWorker' in navigator){
     navigator.serviceWorker.register('sw.js').catch(err=> console.log('SW gagal register:', err));
   });
 }
+
+/* ===== Privacy Blur (blur data pas pindah tab) ===== */
+document.addEventListener('visibilitychange', ()=>{
+  document.body.classList.toggle('privacy-blur', document.hidden);
+});
 </script>
 </body>
 </html>

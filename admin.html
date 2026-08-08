@@ -59,6 +59,7 @@
         <div class="accent-dot" data-accent="pink" style="background:#FF8CC6;" title="Pink"></div>
       </div>
       <button class="theme-toggle" id="btnTheme" title="Ganti tema">🌙</button>
+      <button class="theme-toggle" id="btnCompact" title="Mode Padat">▤</button>
       <a href="index.html" class="btn btn-outline btn-sm">Lihat Dashboard</a>
       <a href="utang.html" class="btn btn-outline btn-sm">Login Owner</a>
       <button class="btn btn-danger btn-sm" id="btnLogout">Logout</button>
@@ -115,6 +116,10 @@
             <label>Nominal (Rp)</label>
             <input type="number" id="orderNominal" placeholder="230000">
           </div>
+        </div>
+        <div class="live-preview" id="orderLivePreview" style="display:none;">
+          <span>Kalau disimpan, total hari itu jadi</span>
+          <b class="mono" id="orderLivePreviewVal">Rp0</b>
         </div>
         <button class="btn btn-primary btn-block" id="btnAddOrder">+ Simpan Orderan</button>
         <div class="success-msg" id="addOrderSuccess">Orderan tersimpan.</div>
@@ -208,12 +213,53 @@
       <div class="card">
         <div class="section-head"><h2>Kelola Driver</h2></div>
         <div class="section-desc">Ubah persen potongan default tiap driver, atau hapus driver.</div>
-        <div id="driverManageList" style="max-height:340px; overflow-y:auto;"><div class="empty-note">Memuat...</div></div>
+        <div id="driverManageList" style="max-height:340px; overflow-y:auto;"><div class="skeleton-row"><div class="skel" style="width:45%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
+      <div class="skeleton-row"><div class="skel" style="width:60%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
+      <div class="skeleton-row"><div class="skel" style="width:38%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div></div>
       </div>
       <div class="card">
         <div class="section-head"><h2>Orderan Terbaru</h2></div>
-        <div id="recentOrdersList" style="max-height:340px; overflow-y:auto;"><div class="empty-note">Memuat...</div></div>
+        <div id="recentOrdersList" style="max-height:340px; overflow-y:auto;"><div class="skeleton-row"><div class="skel" style="width:45%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
+      <div class="skeleton-row"><div class="skel" style="width:60%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
+      <div class="skeleton-row"><div class="skel" style="width:38%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div></div>
       </div>
+    </div>
+  </section>
+
+  <!-- ==== Heatmap Orderan ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head">
+        <h2>Heatmap Orderan</h2>
+        <div class="filter-bar">
+          <select id="heatmapBulan"></select>
+          <select id="heatmapTahun"></select>
+        </div>
+      </div>
+      <div class="section-desc">Semakin gelap warnanya, semakin gede total orderan hari itu (semua driver).</div>
+      <div class="heatmap-grid" id="heatmapGrid"></div>
+      <div class="heatmap-legend">
+        <span>Sepi</span>
+        <div class="sq" style="background:var(--line);"></div>
+        <div class="sq" style="background:var(--gold-1);"></div>
+        <div class="sq" style="background:var(--gold-2);"></div>
+        <div class="sq" style="background:var(--gold-3);"></div>
+        <div class="sq" style="background:var(--gold-4);"></div>
+        <span>Ramai</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==== Tren Orderan per Driver ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head"><h2>Tren Orderan per Driver</h2></div>
+      <div class="section-desc">Total pendapatan 6 bulan terakhir buat 1 driver — kepake buat liat progress dia naik/turun.</div>
+      <div class="field">
+        <label>Driver</label>
+        <select id="trenDriverSelect"></select>
+      </div>
+      <canvas id="trenDriverChart" height="220"></canvas>
     </div>
   </section>
 
@@ -283,7 +329,9 @@
     <div class="card">
       <div class="section-head"><h2>Log Aktivitas</h2></div>
       <div class="section-desc">Catatan otomatis tiap ada perubahan data — siapa yang ngelakuin, apa aksinya, kapan.</div>
-      <div id="activityLogList" style="max-height:340px; overflow-y:auto;"><div class="empty-note">Memuat...</div></div>
+      <div id="activityLogList" style="max-height:340px; overflow-y:auto;"><div class="skeleton-row"><div class="skel" style="width:45%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
+      <div class="skeleton-row"><div class="skel" style="width:60%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
+      <div class="skeleton-row"><div class="skel" style="width:38%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div></div>
     </div>
   </section>
 
@@ -308,7 +356,9 @@
     <div class="card">
       <div class="section-head"><h2>Analisis Hari Ramai/Sepi</h2></div>
       <div class="section-desc">Rata-rata nominal per orderan, dikelompokkan per hari dalam seminggu (semua driver, semua waktu).</div>
-      <div id="analisisHariResult"><div class="empty-note">Memuat...</div></div>
+      <div id="analisisHariResult"><div class="skeleton-row"><div class="skel" style="width:45%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
+      <div class="skeleton-row"><div class="skel" style="width:60%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
+      <div class="skeleton-row"><div class="skel" style="width:38%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div></div>
     </div>
   </section>
 
@@ -317,7 +367,9 @@
     <div class="card">
       <div class="section-head"><h2>Riwayat Login</h2></div>
       <div class="section-desc">15 login terakhir ke panel admin ini.</div>
-      <div id="loginHistoryList" style="max-height:300px; overflow-y:auto;"><div class="empty-note">Memuat...</div></div>
+      <div id="loginHistoryList" style="max-height:300px; overflow-y:auto;"><div class="skeleton-row"><div class="skel" style="width:45%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
+      <div class="skeleton-row"><div class="skel" style="width:60%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
+      <div class="skeleton-row"><div class="skel" style="width:38%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div></div>
     </div>
   </section>
 
@@ -327,6 +379,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="firebase-config.js"></script>
 <script>
 function rupiah(n){ return 'Rp' + Math.round(n||0).toLocaleString('id-ID'); }
@@ -429,6 +482,7 @@ function attachListeners(){
   document.getElementById('orderTanggal').value = todayStr();
   document.getElementById('setoranSampai').value = todayStr();
   initBulkTahunSelect();
+  initHeatmapFilters();
 
   db.ref('drivers').on('value', snap=>{
     drivers = snap.val() || {};
@@ -442,6 +496,8 @@ function attachListeners(){
     updateSetoranPreview();
     renderManageOrderList();
     renderAnalisisHari();
+    renderTrenDriverChart();
+    renderHeatmap();
   });
   db.ref('activityLog').on('value', snap=>{
     activityLog = snap.val() || {};
@@ -565,7 +621,7 @@ function renderActivityLog(){
 function populateDriverSelects(){
   const ids = Object.keys(drivers);
   const opts = ids.map(id=>`<option value="${id}">${escapeHtml(drivers[id].name)}</option>`).join('');
-  ['orderDriver','setoranDriver','bulkOrderDriver','manageOrderDriver'].forEach(elId=>{
+  ['orderDriver','setoranDriver','bulkOrderDriver','manageOrderDriver','trenDriverSelect'].forEach(elId=>{
     const el = document.getElementById(elId);
     const prev = el.value;
     el.innerHTML = opts || '<option value="">Belum ada driver</option>';
@@ -575,6 +631,7 @@ function populateDriverSelects(){
   const prevSearch = searchEl.value;
   searchEl.innerHTML = '<option value="">Semua Driver</option>' + opts;
   if(ids.includes(prevSearch)) searchEl.value = prevSearch;
+  renderTrenDriverChart();
 }
 
 /* ===== Tambah Driver ===== */
@@ -584,7 +641,11 @@ document.getElementById('btnAddDriver').addEventListener('click', ()=>{
   const aktifDari = document.getElementById('newDriverAktifDari').value || null;
   const aktifSampai = document.getElementById('newDriverAktifSampai').value || null;
   if(!name || isNaN(persen)) return;
-  db.ref('drivers').push({ name, persen, aktifDari, aktifSampai }).then(()=>{
+  const driverData = { name, persen };
+  if(aktifDari || aktifSampai){
+    driverData.periodeAktif = { p1: { dari: aktifDari, sampai: aktifSampai } };
+  }
+  db.ref('drivers').push(driverData).then(()=>{
     document.getElementById('newDriverName').value='';
     document.getElementById('newDriverPersen').value='';
     document.getElementById('newDriverAktifDari').value='';
@@ -600,6 +661,19 @@ function renderDriverManage(){
   const ids = Object.keys(drivers);
   wrap.innerHTML = ids.length ? ids.map(id=>{
     const d = drivers[id];
+    const periods = d.periodeAktif
+      ? Object.entries(d.periodeAktif)
+      : ((d.aktifDari || d.aktifSampai) ? [['legacy', {dari: d.aktifDari, sampai: d.aktifSampai}]] : []);
+
+    const periodsHtml = periods.map(([key, p])=>`
+      <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:4px;">
+        <input type="date" value="${p.dari || ''}" style="padding:5px 7px; border:1px solid var(--line); border-radius:7px; font-size:11.5px;" onchange="updateDriverPeriode('${id}','${key}','dari', this.value)">
+        <span style="font-size:11px; color:var(--muted);">s/d</span>
+        <input type="date" value="${p.sampai || ''}" style="padding:5px 7px; border:1px solid var(--line); border-radius:7px; font-size:11.5px;" onchange="updateDriverPeriode('${id}','${key}','sampai', this.value)">
+        <button class="btn btn-danger btn-sm" style="padding:3px 8px; font-size:10.5px;" onclick="deleteDriverPeriode('${id}','${key}')">✕</button>
+      </div>
+    `).join('');
+
     return `
     <div class="list-row" style="flex-direction:column; align-items:stretch; gap:8px;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -610,22 +684,46 @@ function renderDriverManage(){
           <button class="btn btn-danger btn-sm" onclick="deleteDriver('${id}')">✕</button>
         </div>
       </div>
-      <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-        <span style="font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:0.4px; font-weight:600;">Aktif:</span>
-        <input type="date" value="${d.aktifDari || ''}" style="padding:5px 7px; border:1px solid var(--line); border-radius:7px; font-size:11.5px;" onchange="updateDriverAktif('${id}', 'aktifDari', this.value)">
-        <span style="font-size:11px; color:var(--muted);">s/d</span>
-        <input type="date" value="${d.aktifSampai || ''}" style="padding:5px 7px; border:1px solid var(--line); border-radius:7px; font-size:11.5px;" onchange="updateDriverAktif('${id}', 'aktifSampai', this.value)">
-        <span style="font-size:10.5px; color:var(--muted);">(kosong = ${!d.aktifDari ? 'dari awal' : ''}${!d.aktifDari && !d.aktifSampai ? ' / ' : ''}${!d.aktifSampai ? 'masih aktif' : ''})</span>
+      <div>
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:0.4px; font-weight:600;">Periode Aktif ${periods.length ? '(bisa lebih dari 1 kalau keluar-masuk)' : '— kosong berarti aktif dari dulu, terus-terusan'}</span>
+          <button class="btn btn-outline btn-sm" style="padding:3px 8px; font-size:10.5px;" onclick="addDriverPeriode('${id}')">+ Periode</button>
+        </div>
+        ${periodsHtml}
       </div>
       <div style="font-size:10.5px; color:var(--muted);">${renderPersenHistoryLine(id)}</div>
     </div>`;
   }).join('') : `<div class="empty-note">Belum ada driver.</div>`;
 }
-function updateDriverAktif(id, field, val){
-  const nama = drivers[id] ? drivers[id].name : id;
-  db.ref(`drivers/${id}/${field}`).set(val || null).then(()=>{
-    logActivity(`Ubah periode aktif ${nama} (${field === 'aktifDari' ? 'dari' : 'sampai'}: ${val || 'kosong'})`);
-  });
+function updateDriverPeriode(driverId, periodeKey, field, val){
+  const nama = drivers[driverId] ? drivers[driverId].name : driverId;
+  if(periodeKey === 'legacy'){
+    // migrasi otomatis dari struktur lama (aktifDari/aktifSampai tunggal) ke periodeAktif
+    const d = drivers[driverId];
+    const newPeriode = { dari: d.aktifDari || null, sampai: d.aktifSampai || null };
+    newPeriode[field] = val || null;
+    const newKey = db.ref(`drivers/${driverId}/periodeAktif`).push().key;
+    const updates = {};
+    updates[`drivers/${driverId}/periodeAktif/${newKey}`] = newPeriode;
+    updates[`drivers/${driverId}/aktifDari`] = null;
+    updates[`drivers/${driverId}/aktifSampai`] = null;
+    db.ref().update(updates).then(()=> logActivity(`Ubah periode aktif ${nama}`));
+  } else {
+    db.ref(`drivers/${driverId}/periodeAktif/${periodeKey}/${field}`).set(val || null).then(()=>{
+      logActivity(`Ubah periode aktif ${nama}`);
+    });
+  }
+}
+function addDriverPeriode(driverId){
+  db.ref(`drivers/${driverId}/periodeAktif`).push({ dari: null, sampai: null });
+}
+function deleteDriverPeriode(driverId, periodeKey){
+  if(!confirm('Hapus periode aktif ini?')) return;
+  if(periodeKey === 'legacy'){
+    db.ref(`drivers/${driverId}`).update({ aktifDari: null, aktifSampai: null });
+  } else {
+    db.ref(`drivers/${driverId}/periodeAktif/${periodeKey}`).remove();
+  }
 }
 function updateDriverPersen(id, val){
   const persen = parseFloat(val);
@@ -646,6 +744,21 @@ function deleteDriver(id){
 }
 
 /* ===== Input Orderan Harian ===== */
+function updateOrderLivePreview(){
+  const driverId = document.getElementById('orderDriver').value;
+  const tanggal = document.getElementById('orderTanggal').value;
+  const nominal = parseFloat(document.getElementById('orderNominal').value) || 0;
+  const box = document.getElementById('orderLivePreview');
+  if(!driverId || !tanggal || !nominal){ box.style.display='none'; return; }
+  const existing = Object.values(orders[driverId] || {}).filter(o=>o.tanggal===tanggal).reduce((s,o)=>s+Number(o.nominal||0),0);
+  document.getElementById('orderLivePreviewVal').textContent = rupiah(existing + nominal);
+  box.style.display='flex';
+}
+['orderDriver','orderTanggal','orderNominal'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', updateOrderLivePreview);
+  document.getElementById(id).addEventListener('change', updateOrderLivePreview);
+});
+
 document.getElementById('btnAddOrder').addEventListener('click', ()=>{
   const driverId = document.getElementById('orderDriver').value;
   const tanggal = document.getElementById('orderTanggal').value;
@@ -662,6 +775,7 @@ document.getElementById('btnAddOrder').addEventListener('click', ()=>{
 
   db.ref(`orders/${driverId}`).push({ tanggal, nominal }).then(()=>{
     document.getElementById('orderNominal').value='';
+    document.getElementById('orderLivePreview').style.display='none';
     flash(document.getElementById('addOrderSuccess'));
     logActivity(`Input orderan ${nama}: ${rupiah(nominal)} (${formatTgl(tanggal)})`);
   });
@@ -1034,6 +1148,94 @@ document.getElementById('btnBulkSave').addEventListener('click', ()=>{
   });
 });
 
+/* ===== Heatmap Orderan ===== */
+function initHeatmapFilters(){
+  const selBulan = document.getElementById('heatmapBulan');
+  const selTahun = document.getElementById('heatmapTahun');
+  const now = new Date();
+  const BULAN_FULL = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  BULAN_FULL.forEach((b,i)=>{
+    const opt = document.createElement('option');
+    opt.value = i+1; opt.textContent = b;
+    if(i+1 === now.getMonth()+1) opt.selected = true;
+    selBulan.appendChild(opt);
+  });
+  for(let y = now.getFullYear()-2; y <= now.getFullYear()+1; y++){
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    if(y === now.getFullYear()) opt.selected = true;
+    selTahun.appendChild(opt);
+  }
+  selBulan.addEventListener('change', renderHeatmap);
+  selTahun.addEventListener('change', renderHeatmap);
+}
+function renderHeatmap(){
+  const wrap = document.getElementById('heatmapGrid');
+  if(!wrap) return;
+  const bulan = parseInt(document.getElementById('heatmapBulan').value, 10);
+  const tahun = parseInt(document.getElementById('heatmapTahun').value, 10);
+  if(!bulan || !tahun) return;
+
+  const prefix = `${tahun}-${String(bulan).padStart(2,'0')}`;
+  const totalPerHari = {};
+  Object.values(orders).forEach(driverOrders=>{
+    Object.values(driverOrders || {}).forEach(o=>{
+      if(o.tanggal && o.tanggal.startsWith(prefix)){
+        totalPerHari[o.tanggal] = (totalPerHari[o.tanggal] || 0) + Number(o.nominal||0);
+      }
+    });
+  });
+
+  const lastDay = new Date(tahun, bulan, 0).getDate();
+  const firstDow = new Date(tahun, bulan-1, 1).getDay(); // 0=Minggu
+  const maxVal = Math.max(1, ...Object.values(totalPerHari));
+
+  let html = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'].map(d=>`<div style="text-align:center; font-size:9.5px; color:var(--muted); font-weight:700;">${d}</div>`).join('');
+  for(let i=0;i<firstDow;i++) html += `<div class="heatmap-day empty"></div>`;
+  for(let d=1; d<=lastDay; d++){
+    const dateStr = `${prefix}-${String(d).padStart(2,'0')}`;
+    const val = totalPerHari[dateStr] || 0;
+    const ratio = val / maxVal;
+    let bg = 'var(--line)';
+    if(ratio > 0.75) bg = 'var(--gold-4)';
+    else if(ratio > 0.5) bg = 'var(--gold-3)';
+    else if(ratio > 0.25) bg = 'var(--gold-2)';
+    else if(ratio > 0) bg = 'var(--gold-1)';
+    const textColor = ratio > 0.5 ? '#fff' : 'var(--text)';
+    html += `<div class="heatmap-day" style="background:${bg}; color:${textColor};" title="${formatTgl(dateStr)}: ${rupiah(val)}">${d}</div>`;
+  }
+  wrap.innerHTML = html;
+}
+
+/* ===== Tren Orderan per Driver ===== */
+let trenChartInstance = null;
+document.getElementById('trenDriverSelect').addEventListener('change', renderTrenDriverChart);
+function renderTrenDriverChart(){
+  const canvas = document.getElementById('trenDriverChart');
+  if(!canvas || typeof Chart === 'undefined') return;
+  const driverId = document.getElementById('trenDriverSelect').value;
+  const now = new Date();
+  const labels = [], keys = [];
+  for(let i=5; i>=0; i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    keys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    labels.push(BULAN_SHORT[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2));
+  }
+  const list = driverId ? Object.values(orders[driverId] || {}) : [];
+  const data = keys.map(key => list.filter(o=>o.tanggal.startsWith(key)).reduce((s,o)=>s+Number(o.nominal||0),0));
+
+  if(trenChartInstance) trenChartInstance.destroy();
+  trenChartInstance = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Total Orderan', data, backgroundColor: '#FFC629', borderRadius:6 }] },
+    options: {
+      responsive: true,
+      plugins: { legend: { display:false } },
+      scales: { y: { ticks: { callback: v => 'Rp' + (v/1000) + 'rb' } } }
+    }
+  });
+}
+
 /* ===== Kalkulator Potongan ===== */
 const KALK_PERSEN_LIST = [14, 15, 17, 19, 20, 21];
 function renderKalkulator(){
@@ -1082,6 +1284,19 @@ document.getElementById('btnTheme').addEventListener('click', ()=>{
   document.getElementById('btnTheme').textContent = next === 'dark' ? '☀️' : '🌙';
 });
 initTheme();
+
+/* ===== Compact Mode ===== */
+function initCompact(){
+  const on = localStorage.getItem('sk_compact') === '1';
+  document.body.classList.toggle('compact-mode', on);
+  document.getElementById('btnCompact').style.opacity = on ? '1' : '0.55';
+}
+document.getElementById('btnCompact').addEventListener('click', ()=>{
+  const on = document.body.classList.toggle('compact-mode');
+  localStorage.setItem('sk_compact', on ? '1' : '0');
+  document.getElementById('btnCompact').style.opacity = on ? '1' : '0.55';
+});
+initCompact();
 
 /* ===== Font Size ===== */
 const FONT_SCALES = [0.9, 1, 1.1, 1.2];
@@ -1141,6 +1356,11 @@ if('serviceWorker' in navigator){
     navigator.serviceWorker.register('sw.js').catch(err=> console.log('SW gagal register:', err));
   });
 }
+
+/* ===== Privacy Blur (blur data pas pindah tab) ===== */
+document.addEventListener('visibilitychange', ()=>{
+  document.body.classList.toggle('privacy-blur', document.hidden);
+});
 </script>
 </body>
 </html>
