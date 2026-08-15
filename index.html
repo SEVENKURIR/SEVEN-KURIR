@@ -12,7 +12,31 @@
 <link rel="apple-touch-icon" href="LOGO%20SEVEN%20KURIR.png">
 </head>
 <body>
-<div id="skWatermark"></div>
+
+<!-- ====== LOGIN SCREEN ====== -->
+<div class="login-wrap" id="loginScreen">
+  <div class="login-card">
+    <div class="plate"><img src="LOGO%20SEVEN%20KURIR.png" alt="Seven Kurir"></div>
+    <h1>Login Driver</h1>
+    <p>Seven Kurir — Dashboard Pendapatan</p>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="email@sevenkurir.com">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••••">
+    </div>
+    <div class="error-msg" id="loginError">Email atau password salah.</div>
+    <div class="success-msg" id="resetSuccess">Link reset password udah dikirim, cek email.</div>
+    <button class="btn btn-primary btn-block" id="btnDoLogin" style="margin-top:8px;">Masuk</button>
+    <div style="margin-top:12px;"><a href="#" id="btnForgotPassword" style="color:var(--muted); font-size:12.5px;">Lupa password?</a></div>
+    <div style="margin-top:8px;"><a href="admin.html" style="color:var(--muted); font-size:12.5px;">← Admin</a></div>
+  </div>
+</div>
+
+<!-- ====== DASHBOARD (muncul setelah login) ====== -->
+<div id="dashboardPanel" style="display:none;">
 
 <header class="topbar">
   <a class="brand" href="index.html">
@@ -36,7 +60,7 @@
     </div>
     <button class="theme-toggle bell-btn" id="btnBell" title="Pengumuman">🔔<span class="bell-dot" id="bellDot"></span></button>
     <button class="theme-toggle" id="btnTheme" title="Ganti tema">🌙</button>
-    <a href="admin.html" class="btn btn-outline btn-sm">Admin</a>
+    <button class="btn btn-danger btn-sm" id="btnLogout">Logout</button>
   </div>
 </header>
 
@@ -77,6 +101,8 @@
 
 <footer>!! HANYA ADMIN YANG DAPAT MENGUBAH PENDAPATAN DRIVER</footer>
 
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -87,16 +113,62 @@ const BULAN_NAMES = ['Januari','Februari','Maret','April','Mei','Juni','Juli','A
 function rupiah(n){ return 'Rp' + Math.round(n||0).toLocaleString('id-ID'); }
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
+function formatTgl(iso){ const [y,m,d] = iso.split('-'); return `${d}/${m}/${y}`; }
 
-let drivers = {};   // { driverId: {name, persen} }
-let orders = {};    // { driverId: { orderId: {tanggal, nominal} } }
-let setoranData = {}; // { driverId: { setoranId: {...} } } -- masih dipakai di admin, gak ditampilin di kartu publik
+let drivers = {};
+let orders = {};
 let openDriverId = null;
+
+/* ===== AUTH ===== */
+auth.onAuthStateChanged(user=>{
+  if(user){
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('dashboardPanel').style.display='block';
+    db.ref('drivers').on('value', snap=>{ drivers = snap.val() || {}; render(); });
+    db.ref('orders').on('value', snap=>{ orders = snap.val() || {}; render(); });
+    initFilters();
+  } else {
+    document.getElementById('loginScreen').style.display='flex';
+    document.getElementById('dashboardPanel').style.display='none';
+  }
+});
+
+document.getElementById('btnDoLogin').addEventListener('click', ()=>{
+  const email = document.getElementById('loginEmail').value.trim();
+  const pw = document.getElementById('loginPassword').value;
+  document.getElementById('loginError').style.display='none';
+  auth.signInWithEmailAndPassword(email, pw).catch(err=>{
+    document.getElementById('loginError').textContent = 'Email atau password salah.';
+    document.getElementById('loginError').style.display='block';
+  });
+});
+document.getElementById('loginPassword').addEventListener('keydown', e=>{
+  if(e.key==='Enter') document.getElementById('btnDoLogin').click();
+});
+document.getElementById('btnForgotPassword').addEventListener('click', (e)=>{
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  document.getElementById('loginError').style.display='none';
+  document.getElementById('resetSuccess').style.display='none';
+  if(!email){
+    document.getElementById('loginError').textContent = 'Isi email dulu di atas, baru klik "Lupa password?"';
+    document.getElementById('loginError').style.display='block';
+    return;
+  }
+  auth.sendPasswordResetEmail(email).then(()=>{
+    document.getElementById('resetSuccess').style.display='block';
+  }).catch(err=>{
+    document.getElementById('loginError').textContent = 'Gagal kirim reset: ' + err.message;
+    document.getElementById('loginError').style.display='block';
+  });
+});
+document.getElementById('btnLogout').addEventListener('click', ()=> auth.signOut());
 
 // isi dropdown filter bulan & tahun
 function initFilters(){
   const selBulan = document.getElementById('filterBulan');
   const selTahun = document.getElementById('filterTahun');
+  if(selBulan.options.length) return;
   const now = new Date();
   BULAN_NAMES.forEach((b,i)=>{
     const opt = document.createElement('option');
@@ -121,12 +193,10 @@ function getSelectedBulanTahun(){
   };
 }
 
-// ambil semua order milik 1 driver sebagai array
 function orderArray(driverId){
   const o = orders[driverId] || {};
   return Object.keys(o).map(id => ({ id, ...o[id] })).sort((a,b)=> b.tanggal.localeCompare(a.tanggal));
 }
-
 function sumHari(driverId, dateStr){
   return orderArray(driverId).filter(o=>o.tanggal===dateStr).reduce((s,o)=>s+Number(o.nominal||0),0);
 }
@@ -136,9 +206,6 @@ function sumBulan(driverId, bulan, tahun){
 }
 function sumTahun(driverId, tahun){
   return orderArray(driverId).filter(o=>o.tanggal.startsWith(String(tahun))).reduce((s,o)=>s+Number(o.nominal||0),0);
-}
-function sumTotal(driverId){
-  return orderArray(driverId).reduce((s,o)=>s+Number(o.nominal||0),0);
 }
 
 function isDriverActiveInPeriod(driver, bulan, tahun){
@@ -157,10 +224,10 @@ function isDriverActiveInPeriod(driver, bulan, tahun){
 
 function render(){
   const { bulan, tahun } = getSelectedBulanTahun();
+  if(!bulan || !tahun) return;
   const driverIds = Object.keys(drivers).filter(id => isDriverActiveInPeriod(drivers[id], bulan, tahun));
   const today = todayStr();
 
-  // stats global
   let totalHariIni=0, totalBulanIni=0, totalTahunIni=0;
   driverIds.forEach(id=>{
     totalHariIni += sumHari(id, today);
@@ -169,8 +236,8 @@ function render(){
   });
   document.getElementById('statsRow').innerHTML = `
     <div class="stat-card"><div class="label">Total Driver</div><div class="value">${driverIds.length}</div></div>
-    <div class="stat-card"><div class="label">Total Bulan Ini</div><div class="value mono">${rupiah(totalBulanIni)}</div><div class="privacy-note">Penghasilan ini dari driver, penghasilan admin tidak dihitung dalam sini dikarenakan penghasilan admin bersifat privasi</div></div>
-    <div class="stat-card"><div class="label">Total Tahun ini</div><div class="value orange mono">${rupiah(totalTahunIni)}</div><div class="privacy-note">Penghasilan ini dari driver, penghasilan admin tidak dihitung dalam sini dikarenakan penghasilan admin bersifat privasi</div></div>
+    <div class="stat-card"><div class="label">Total Bulan Ini</div><div class="value mono">${rupiah(totalBulanIni)}</div></div>
+    <div class="stat-card"><div class="label">Total Tahun ini</div><div class="value orange mono">${rupiah(totalTahunIni)}</div></div>
   `;
 
   renderTopDriverSpotlight(driverIds, bulan, tahun);
@@ -258,27 +325,10 @@ function renderTopDriverSpotlight(driverIds, bulan, tahun){
   `;
 }
 
-function formatTgl(iso){
-  const [y,m,d] = iso.split('-');
-  return `${d}/${m}/${y}`;
-}
-
 function toggleDriver(id){
   openDriverId = (openDriverId === id) ? null : id;
   render();
 }
-function setTab(id, tab){
-  activeTab[id] = tab;
-  render();
-}
-
-// ==== Firebase real-time listeners ====
-db.ref('drivers').on('value', snap=>{ drivers = snap.val() || {}; render(); });
-db.ref('orders').on('value', snap=>{ orders = snap.val() || {}; render(); });
-db.ref('setoran').on('value', snap=>{ setoranData = snap.val() || {}; render(); });
-
-initFilters();
-render();
 
 /* ===== Dark Mode ===== */
 function initTheme(){
@@ -295,21 +345,7 @@ document.getElementById('btnTheme').addEventListener('click', ()=>{
 });
 initTheme();
 
-/* ===== Watermark & Deterrent Screenshot ===== */
-/* CATATAN: ini bukan proteksi 100% (gak ada cara ngeblok screenshot beneran di web),
-   ini cuma bikin susah orang iseng + nandain kapan halaman ini diakses kalau discreenshot & disebar. */
-function renderWatermark(){
-  const wm = document.getElementById('skWatermark');
-  if(!wm) return;
-  const now = new Date();
-  const label = `SEVEN KURIR • ${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}`;
-  let html = '';
-  for(let i=0;i<40;i++) html += `<span>${label}</span>`;
-  wm.innerHTML = html;
-}
-renderWatermark();
-setInterval(renderWatermark, 60000);
-
+/* ===== Deterrent Screenshot (bukan proteksi 100%, cuma nyusahin orang iseng) ===== */
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('keydown', e=>{
   const k = e.key.toLowerCase();

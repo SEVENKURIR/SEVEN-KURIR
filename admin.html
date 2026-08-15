@@ -71,37 +71,20 @@
     <h1 style="font-size:28px;">Kelola orderan, setoran, dan kas.</h1>
   </section>
 
-  <section class="section">
-    <div class="grid-2">
+<!-- ==== Log Aktivitas ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head"><h2>Log Aktivitas</h2></div>
+      <div class="section-desc">Catatan otomatis tiap ada perubahan data — siapa yang ngelakuin, apa aksinya, kapan.</div>
+      <div id="activityLogList" style="max-height:340px; overflow-y:auto;"><div class="skeleton-row"><div class="skel" style="width:45%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
+      <div class="skeleton-row"><div class="skel" style="width:60%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
+      <div class="skeleton-row"><div class="skel" style="width:38%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div></div>
+    </div>
+  </section>
 
-      <!-- ==== Tambah Driver ==== -->
-      <div class="card">
-        <div class="section-head"><h2>Tambah Driver</h2></div>
-        <div class="field">
-          <label>Nama Driver</label>
-          <input type="text" id="newDriverName" placeholder="Contoh: Andi Saputra">
-        </div>
-        <div class="field">
-          <label>Persen Potongan Default (%)</label>
-          <input type="number" id="newDriverPersen" placeholder="Contoh: 17">
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label>Aktif Dari (opsional)</label>
-            <input type="date" id="newDriverAktifDari">
-          </div>
-          <div class="field">
-            <label>Aktif Sampai (opsional)</label>
-            <input type="date" id="newDriverAktifSampai">
-          </div>
-        </div>
-        <div class="section-desc" style="margin:-4px 0 12px;">Kosongin "Aktif Dari/Sampai" kalau driver-nya masih aktif sekarang. Isi keduanya buat backfill driver lama yang udah keluar — dia cuma bakal nongol di dashboard pas bulan yang sesuai periode itu.</div>
-        <button class="btn btn-primary btn-block" id="btnAddDriver">+ Tambah Driver</button>
-        <div class="success-msg" id="addDriverSuccess">Driver berhasil ditambahkan.</div>
-      </div>
-
-      <!-- ==== Input Orderan Harian ==== -->
-      <div class="card">
+  <!-- ==== Input Orderan Harian ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
         <div class="section-head"><h2>Input Orderan Harian</h2></div>
         <div class="field">
           <label>Driver</label>
@@ -124,11 +107,10 @@
         <button class="btn btn-primary btn-block" id="btnAddOrder">+ Simpan Orderan</button>
         <div class="success-msg" id="addOrderSuccess">Orderan tersimpan.</div>
       </div>
-
-    </div>
   </section>
 
-  <!-- ==== Input Orderan Massal ==== -->
+
+<!-- ==== Input Orderan Massal ==== -->
   <section class="section" style="padding-top:0;">
     <div class="card">
       <div class="section-head"><h2>Input Orderan Massal (Backfill)</h2></div>
@@ -159,124 +141,48 @@
     </div>
   </section>
 
-  <!-- ==== Kelola / Hapus Orderan ==== -->
+  <!-- ==== Tambah Driver ==== -->
   <section class="section" style="padding-top:0;">
     <div class="card">
-      <div class="section-head"><h2>Kelola / Hapus Orderan</h2></div>
-      <div class="section-desc">Kepake pas salah input driver (misal kepencet ke driver lain pas backfill) — bisa hapus satu-satu atau langsung per rentang tanggal.</div>
-      <div class="field">
-        <label>Pilih Driver</label>
-        <select id="manageOrderDriver"></select>
-      </div>
-      <div class="field-row">
+        <div class="section-head"><h2>Tambah Driver</h2></div>
         <div class="field">
-          <label>Hapus Rentang Tanggal (opsional)</label>
-          <input type="date" id="manageDeleteDari">
+          <label>Nama Driver</label>
+          <input type="text" id="newDriverName" placeholder="Contoh: Andi Saputra">
         </div>
         <div class="field">
-          <label>Sampai</label>
-          <input type="date" id="manageDeleteSampai">
+          <label>Persen Potongan Default (%)</label>
+          <input type="number" id="newDriverPersen" placeholder="Contoh: 17">
         </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Aktif Dari (opsional)</label>
+            <input type="date" id="newDriverAktifDari">
+          </div>
+          <div class="field">
+            <label>Aktif Sampai (opsional)</label>
+            <input type="date" id="newDriverAktifSampai">
+          </div>
+        </div>
+        <div class="section-desc" style="margin:-4px 0 12px;">Kosongin "Aktif Dari/Sampai" kalau driver-nya masih aktif sekarang. Isi keduanya buat backfill driver lama yang udah keluar — dia cuma bakal nongol di dashboard pas bulan yang sesuai periode itu.</div>
+        <button class="btn btn-primary btn-block" id="btnAddDriver">+ Tambah Driver</button>
+        <div class="success-msg" id="addDriverSuccess">Driver berhasil ditambahkan.</div>
       </div>
-      <button class="btn btn-danger btn-block" id="btnDeleteRange" style="margin-bottom:18px;">Hapus Semua di Rentang Ini</button>
-      <div class="section-desc" style="margin-top:0; margin-bottom:8px;">Atau hapus satu-satu:</div>
-      <div id="manageOrderList" style="max-height:400px; overflow-y:auto;"><div class="empty-note">Pilih driver dulu.</div></div>
-    </div>
   </section>
 
-  <!-- ==== Cari Orderan (lintas semua driver) ==== -->
+
+  <!-- ==== Kelola Driver ==== -->
   <section class="section" style="padding-top:0;">
     <div class="card">
-      <div class="section-head"><h2>Cari Orderan</h2></div>
-      <div class="section-desc">Cari orderan lintas semua driver — kepake buat cek "tanggal segini semua driver input berapa" tanpa harus buka satu-satu.</div>
-      <div class="field-row">
-        <div class="field">
-          <label>Dari Tanggal</label>
-          <input type="date" id="searchOrderDari">
-        </div>
-        <div class="field">
-          <label>Sampai Tanggal</label>
-          <input type="date" id="searchOrderSampai">
-        </div>
-      </div>
-      <div class="field">
-        <label>Driver (opsional)</label>
-        <select id="searchOrderDriver"><option value="">Semua Driver</option></select>
-      </div>
-      <button class="btn btn-outline btn-block" id="btnSearchOrder" style="margin-bottom:14px;">Cari</button>
-      <div id="searchOrderResult"><div class="empty-note">Isi tanggal dulu, terus klik Cari.</div></div>
-    </div>
-  </section>
-
-  <section class="section" style="padding-top:0;">
-    <div class="grid-2">
-      <div class="card">
         <div class="section-head"><h2>Kelola Driver</h2></div>
         <div class="section-desc">Ubah persen potongan default tiap driver, atau hapus driver.</div>
         <div id="driverManageList" style="max-height:340px; overflow-y:auto;"><div class="skeleton-row"><div class="skel" style="width:45%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
       <div class="skeleton-row"><div class="skel" style="width:60%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
       <div class="skeleton-row"><div class="skel" style="width:38%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div></div>
       </div>
-      <div class="card">
-        <div class="section-head"><h2>Orderan Terbaru</h2></div>
-        <div id="recentOrdersList" style="max-height:340px; overflow-y:auto;"><div class="skeleton-row"><div class="skel" style="width:45%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
-      <div class="skeleton-row"><div class="skel" style="width:60%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
-      <div class="skeleton-row"><div class="skel" style="width:38%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div></div>
-      </div>
-    </div>
   </section>
 
-  <!-- ==== Heatmap Orderan ==== -->
-  <section class="section" style="padding-top:0;">
-    <div class="card">
-      <div class="section-head">
-        <h2>Heatmap Orderan</h2>
-        <div class="filter-bar">
-          <select id="heatmapBulan"></select>
-          <select id="heatmapTahun"></select>
-        </div>
-      </div>
-      <div class="section-desc">Semakin gelap warnanya, semakin gede total orderan hari itu (semua driver).</div>
-      <div class="heatmap-grid" id="heatmapGrid"></div>
-      <div class="heatmap-legend">
-        <span>Sepi</span>
-        <div class="sq" style="background:var(--line);"></div>
-        <div class="sq" style="background:var(--gold-1);"></div>
-        <div class="sq" style="background:var(--gold-2);"></div>
-        <div class="sq" style="background:var(--gold-3);"></div>
-        <div class="sq" style="background:var(--gold-4);"></div>
-        <span>Ramai</span>
-      </div>
-    </div>
-  </section>
 
-  <!-- ==== Tren Orderan per Driver ==== -->
-  <section class="section" style="padding-top:0;">
-    <div class="card">
-      <div class="section-head"><h2>Tren Orderan per Driver</h2></div>
-      <div class="section-desc">Total pendapatan 6 bulan terakhir buat 1 driver — kepake buat liat progress dia naik/turun.</div>
-      <div class="field">
-        <label>Driver</label>
-        <select id="trenDriverSelect"></select>
-      </div>
-      <canvas id="trenDriverChart" height="220"></canvas>
-    </div>
-  </section>
-
-  <!-- ==== Kalkulator Potongan ==== -->
-  <section class="section" style="padding-top:0;">
-    <div class="card">
-      <div class="section-head"><h2>Kalkulator Potongan Driver</h2></div>
-      <div class="section-desc">15% itu potongan normal. 17%/19%/20% biasanya karena kena denda — kalkulator ini nunjukin selisihnya dibanding potongan normal.</div>
-      <div class="field">
-        <label>Total Pendapatan (Rp)</label>
-        <input type="number" id="kalkTotal" placeholder="3000000">
-      </div>
-      <div id="kalkResult"></div>
-    </div>
-  </section>
-
-  <!-- ==== Buat Setoran ==== -->
+<!-- ==== Buat Setoran ==== -->
   <section class="section" style="padding-top:0;">
     <div class="card">
       <div class="section-head"><h2>Buat Setoran</h2></div>
@@ -324,18 +230,117 @@
     </div>
   </section>
 
-  <!-- ==== Log Aktivitas ==== -->
+<!-- ==== Kalkulator Potongan ==== -->
   <section class="section" style="padding-top:0;">
     <div class="card">
-      <div class="section-head"><h2>Log Aktivitas</h2></div>
-      <div class="section-desc">Catatan otomatis tiap ada perubahan data — siapa yang ngelakuin, apa aksinya, kapan.</div>
-      <div id="activityLogList" style="max-height:340px; overflow-y:auto;"><div class="skeleton-row"><div class="skel" style="width:45%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
-      <div class="skeleton-row"><div class="skel" style="width:60%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
-      <div class="skeleton-row"><div class="skel" style="width:38%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div></div>
+      <div class="section-head"><h2>Kalkulator Potongan Driver</h2></div>
+      <div class="section-desc">15% itu potongan normal. 17%/19%/20% biasanya karena kena denda — kalkulator ini nunjukin selisihnya dibanding potongan normal.</div>
+      <div class="field">
+        <label>Total Pendapatan (Rp)</label>
+        <input type="number" id="kalkTotal" placeholder="3000000">
+      </div>
+      <div id="kalkResult"></div>
     </div>
   </section>
 
-  <!-- ==== Pengumuman ==== -->
+  <!-- ==== Orderan Terbaru ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+        <div class="section-head"><h2>Orderan Terbaru</h2></div>
+        <div id="recentOrdersList" style="max-height:340px; overflow-y:auto;"><div class="skeleton-row"><div class="skel" style="width:45%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
+      <div class="skeleton-row"><div class="skel" style="width:60%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div>
+      <div class="skeleton-row"><div class="skel" style="width:38%; height:14px;"></div><div class="skel" style="width:60px; height:14px;"></div></div></div>
+      </div>
+  </section>
+
+
+<!-- ==== Cari Orderan (lintas semua driver) ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head"><h2>Cari Orderan</h2></div>
+      <div class="section-desc">Cari orderan lintas semua driver — kepake buat cek "tanggal segini semua driver input berapa" tanpa harus buka satu-satu.</div>
+      <div class="field-row">
+        <div class="field">
+          <label>Dari Tanggal</label>
+          <input type="date" id="searchOrderDari">
+        </div>
+        <div class="field">
+          <label>Sampai Tanggal</label>
+          <input type="date" id="searchOrderSampai">
+        </div>
+      </div>
+      <div class="field">
+        <label>Driver (opsional)</label>
+        <select id="searchOrderDriver"><option value="">Semua Driver</option></select>
+      </div>
+      <button class="btn btn-outline btn-block" id="btnSearchOrder" style="margin-bottom:14px;">Cari</button>
+      <div id="searchOrderResult"><div class="empty-note">Isi tanggal dulu, terus klik Cari.</div></div>
+    </div>
+  </section>
+
+<!-- ==== Kelola / Hapus Orderan ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head"><h2>Kelola / Hapus Orderan</h2></div>
+      <div class="section-desc">Kepake pas salah input driver (misal kepencet ke driver lain pas backfill) — bisa hapus satu-satu atau langsung per rentang tanggal.</div>
+      <div class="field">
+        <label>Pilih Driver</label>
+        <select id="manageOrderDriver"></select>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Hapus Rentang Tanggal (opsional)</label>
+          <input type="date" id="manageDeleteDari">
+        </div>
+        <div class="field">
+          <label>Sampai</label>
+          <input type="date" id="manageDeleteSampai">
+        </div>
+      </div>
+      <button class="btn btn-danger btn-block" id="btnDeleteRange" style="margin-bottom:18px;">Hapus Semua di Rentang Ini</button>
+      <div class="section-desc" style="margin-top:0; margin-bottom:8px;">Atau hapus satu-satu:</div>
+      <div id="manageOrderList" style="max-height:400px; overflow-y:auto;"><div class="empty-note">Pilih driver dulu.</div></div>
+    </div>
+  </section>
+
+<!-- ==== Tren Orderan per Driver ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head"><h2>Tren Orderan per Driver</h2></div>
+      <div class="section-desc">Total pendapatan 6 bulan terakhir buat 1 driver — kepake buat liat progress dia naik/turun.</div>
+      <div class="field">
+        <label>Driver</label>
+        <select id="trenDriverSelect"></select>
+      </div>
+      <canvas id="trenDriverChart" height="220"></canvas>
+    </div>
+  </section>
+
+<!-- ==== Heatmap Orderan ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head">
+        <h2>Heatmap Orderan</h2>
+        <div class="filter-bar">
+          <select id="heatmapBulan"></select>
+          <select id="heatmapTahun"></select>
+        </div>
+      </div>
+      <div class="section-desc">Semakin gelap warnanya, semakin gede total orderan hari itu (semua driver).</div>
+      <div class="heatmap-grid" id="heatmapGrid"></div>
+      <div class="heatmap-legend">
+        <span>Sepi</span>
+        <div class="sq" style="background:var(--line);"></div>
+        <div class="sq" style="background:var(--gold-1);"></div>
+        <div class="sq" style="background:var(--gold-2);"></div>
+        <div class="sq" style="background:var(--gold-3);"></div>
+        <div class="sq" style="background:var(--gold-4);"></div>
+        <span>Ramai</span>
+      </div>
+    </div>
+  </section>
+
+<!-- ==== Pengumuman ==== -->
   <section class="section" style="padding-top:0;">
     <div class="card">
       <div class="section-head"><h2>Pengumuman buat Driver</h2></div>
@@ -351,7 +356,7 @@
     </div>
   </section>
 
-  <!-- ==== Analisis Hari ==== -->
+<!-- ==== Analisis Hari ==== -->
   <section class="section" style="padding-top:0;">
     <div class="card">
       <div class="section-head"><h2>Analisis Hari Ramai/Sepi</h2></div>
@@ -362,7 +367,7 @@
     </div>
   </section>
 
-  <!-- ==== Riwayat Login ==== -->
+<!-- ==== Riwayat Login ==== -->
   <section class="section" style="padding-top:0;">
     <div class="card">
       <div class="section-head"><h2>Riwayat Login</h2></div>
@@ -715,7 +720,7 @@ function updateDriverPeriode(driverId, periodeKey, field, val){
   }
 }
 function addDriverPeriode(driverId){
-  db.ref(`drivers/${driverId}/periodeAktif`).push({ dari: null, sampai: null });
+  db.ref(`drivers/${driverId}/periodeAktif`).push({ dari: '', sampai: '' });
 }
 function deleteDriverPeriode(driverId, periodeKey){
   if(!confirm('Hapus periode aktif ini?')) return;

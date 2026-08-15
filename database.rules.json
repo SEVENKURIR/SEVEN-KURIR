@@ -1,15 +1,15 @@
 {
   "rules": {
     "drivers": {
-      ".read": true,
+      ".read": "auth != null",
       ".write": "auth != null && (auth.uid === 'BKAhNYWwNFbHe5QkYGraNPpmYBe2' || auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3')"
     },
     "orders": {
-      ".read": true,
+      ".read": "auth != null",
       ".write": "auth != null && (auth.uid === 'BKAhNYWwNFbHe5QkYGraNPpmYBe2' || auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3')"
     },
     "setoran": {
-      ".read": "auth != null && (auth.uid === 'BKAhNYWwNFbHe5QkYGraNPpmYBe2' || auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3')",
+      ".read": "auth != null",
       ".write": "auth != null && (auth.uid === 'BKAhNYWwNFbHe5QkYGraNPpmYBe2' || auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3')"
     },
     "activityLog": {
@@ -17,11 +17,11 @@
       ".write": "auth != null && (auth.uid === 'BKAhNYWwNFbHe5QkYGraNPpmYBe2' || auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3')"
     },
     "persenHistory": {
-      ".read": true,
+      ".read": "auth != null",
       ".write": "auth != null && (auth.uid === 'BKAhNYWwNFbHe5QkYGraNPpmYBe2' || auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3')"
     },
     "pengumuman": {
-      ".read": true,
+      ".read": "auth != null",
       ".write": "auth != null && (auth.uid === 'BKAhNYWwNFbHe5QkYGraNPpmYBe2' || auth.uid === 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3')"
     },
     "loginHistory": {
