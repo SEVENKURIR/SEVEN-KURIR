@@ -421,9 +421,20 @@ const BULAN_MAP = {
 };
 
 /* ===== AUTH ===== */
+const MAIN_ADMIN_UIDS = ['BKAhNYWwNFbHe5QkYGraNPpmYBe2', 'DCr45UTPgzNR4PCG7Ouv7XgwdXE3'];
 let loginLogged = false;
 auth.onAuthStateChanged(user=>{
   if(user){
+    if(!MAIN_ADMIN_UIDS.includes(user.uid)){
+      // Login berhasil, tapi akun ini bukan admin — tolak & langsung logout paksa
+      auth.signOut().then(()=>{
+        document.getElementById('loginScreen').style.display='flex';
+        document.getElementById('adminPanel').style.display='none';
+        document.getElementById('loginError').textContent = `Akun ${user.email} gak punya akses ke halaman ini.`;
+        document.getElementById('loginError').style.display='block';
+      });
+      return;
+    }
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('adminPanel').style.display='block';
     document.getElementById('loggedInAs').textContent = 'Masuk sebagai ' + user.email;
