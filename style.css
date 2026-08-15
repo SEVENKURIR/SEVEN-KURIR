@@ -391,17 +391,6 @@ body.compact-mode .list-row{ padding:7px 0; }
 body.compact-mode .section-head h2{ font-size:16px; }
 body.compact-mode .btn{ padding:8px 16px; font-size:13px; }
 
-/* ===== Watermark (anti-screenshot deterrent) ===== */
-#skWatermark{
-  position:fixed; inset:0; z-index:9999; pointer-events:none;
-  display:flex; flex-wrap:wrap; align-content:space-around; justify-content:space-around;
-  overflow:hidden; opacity:0.06; transform:rotate(-28deg) scale(1.3);
-  user-select:none;
-}
-#skWatermark span{
-  font-size:13px; font-weight:700; color:var(--text); white-space:nowrap; margin:24px 32px;
-  font-family:'JetBrains Mono', monospace;
-}
 body.privacy-blur #adminPanel, body.privacy-blur #utangPanel, body.privacy-blur .section, body.privacy-blur .hero{
   filter: blur(14px);
   transition: filter .15s ease;
@@ -429,6 +418,6 @@ body.privacy-blur #adminPanel, body.privacy-blur #utangPanel, body.privacy-blur 
 
 /* ===== Tag Wajib/Opsional ===== */
 .tag-wajib{ background:#FDEDED; color:var(--danger); }
-.tag-opsional{ background:#E8F4FF; color:#2B6FD1; }
+.tag-seharihari{ background:#E8F4FF; color:#2B6FD1; }
 .jenis-tag{ display:inline-block; font-size:9.5px; font-weight:700; padding:2px 8px; border-radius:20px; margin-left:6px; }
 

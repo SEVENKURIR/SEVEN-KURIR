@@ -66,7 +66,7 @@
 </header>
 
 <section class="hero">
-  <div class="hero-eyebrow">HAI DRIVER SEVEN KURIR</div>
+  <div class="hero-eyebrow" id="heroGreeting">HAI DRIVER SEVEN KURIR</div>
   <h1>Cek pendapatan harian, bulanan, dan setoran kamu.</h1>
   <div class="stats-row" id="statsRow"></div>
 </section>
@@ -121,16 +121,44 @@ let orders = {};
 let openDriverId = null;
 
 /* ===== AUTH ===== */
+const SPECIAL_NAMES = { 'bilalreynaldi11@gmail.com': { name:'Rey', prefix:'Halo' } };
+let loginLogged = false;
+
+function getGreetingInfo(user){
+  const email = (user.email||'').toLowerCase();
+  if(SPECIAL_NAMES[email]) return SPECIAL_NAMES[email];
+  const prefix = email.split('@')[0];
+  const match = Object.values(drivers).find(d => (d.name||'').toLowerCase() === prefix);
+  const name = match ? match.name : (prefix.charAt(0).toUpperCase() + prefix.slice(1));
+  return { name, prefix: 'Hai' };
+}
+function setGreeting(user){
+  const el = document.getElementById('heroGreeting');
+  if(!el) return;
+  const info = getGreetingInfo(user);
+  el.textContent = `${info.prefix} ${info.name}`;
+}
+
 auth.onAuthStateChanged(user=>{
   if(user){
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('dashboardPanel').style.display='block';
-    db.ref('drivers').on('value', snap=>{ drivers = snap.val() || {}; render(); });
+    db.ref('drivers').on('value', snap=>{
+      drivers = snap.val() || {};
+      render();
+      setGreeting(user);
+    });
     db.ref('orders').on('value', snap=>{ orders = snap.val() || {}; render(); });
     initFilters();
+    if(!loginLogged){
+      loginLogged = true;
+      const info = getGreetingInfo(user);
+      db.ref('activityLog').push({ waktu: Date.now(), admin: user.email, aksi: `Login driver: ${info.name}` });
+    }
   } else {
     document.getElementById('loginScreen').style.display='flex';
     document.getElementById('dashboardPanel').style.display='none';
+    loginLogged = false;
   }
 });
 
@@ -249,7 +277,9 @@ function render(){
     return;
   }
 
-  wrap.innerHTML = driverIds.map(id=>{
+  const sortedDriverIds = [...driverIds].sort((a,b)=> sumBulan(b, bulan, tahun) - sumBulan(a, bulan, tahun));
+
+  wrap.innerHTML = sortedDriverIds.map(id=>{
     const d = drivers[id];
     const bulanIni = sumBulan(id, bulan, tahun);
     const tahunIni = sumTahun(id, tahun);

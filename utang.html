@@ -17,8 +17,8 @@
 <div class="login-wrap" id="loginScreen">
   <div class="login-card">
     <div class="plate"><img src="LOGO%20SEVEN%20KURIR.png" alt="Seven Kurir"></div>
-    <h1>Login Utang</h1>
-    <p>Seven Kurir — Pencatatan Utang (khusus)</p>
+    <h1>Login</h1>
+    <p>Seven Kurir — OWNER AREA (khusus)</p>
     <div class="field">
       <label>Email</label>
       <input type="email" id="loginEmail" placeholder="email@sevenkurir.com">
@@ -46,12 +46,11 @@
       <div class="plate"><img src="LOGO%20SEVEN%20KURIR.png" alt="Seven Kurir"></div>
       <div>
         <div class="brand-name">SEVEN KURIR</div>
-        <div class="brand-sub">Pencatatan Utang</div>
+        <div class="brand-sub">OWNER AREA</div>
       </div>
     </a>
     <div style="display:flex; gap:10px;">
       <button class="theme-toggle" id="btnTheme" title="Ganti tema">🌙</button>
-      <a href="index.html" class="btn btn-outline btn-sm">Lihat Dashboard</a>
       <a href="admin.html" class="btn btn-outline btn-sm">Admin</a>
       <button class="btn btn-danger btn-sm" id="btnLogout">Logout</button>
     </div>
@@ -59,7 +58,7 @@
 
   <section class="hero" style="padding-bottom:0;">
     <div class="hero-eyebrow" id="loggedInAs">Masuk sebagai</div>
-    <h1 style="font-size:28px;">Catat & pantau utang.</h1>
+    <h1 style="font-size:28px;">OWNER AREA</h1>
     <div class="stats-row" id="utangStats" style="margin-top:20px;"></div>
   </section>
 
@@ -144,7 +143,7 @@
           <label>Jenis</label>
           <select id="cfJenis">
             <option value="wajib">Wajib</option>
-            <option value="opsional">Opsional</option>
+            <option value="seharihari">Sehari-hari</option>
           </select>
         </div>
       </div>
@@ -163,7 +162,7 @@
     <img id="fotoLightboxImg" src="" style="max-width:100%; max-height:100%; border-radius:12px; box-shadow:0 20px 50px rgba(0,0,0,0.5);">
   </div>
 
-  <footer>Seven Kurir · Pencatatan Utang · data tersimpan di Firebase</footer>
+  <footer>Seven Kurir · OWNER AREA · data tersimpan di Firebase</footer>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -214,10 +213,10 @@ let donutChartInstance = null;
 let lunasTargetId = null;
 
 /* ===== Kategori Pengeluaran (buat cashflow) ===== */
-const KATEGORI_KELUAR = ['Makan & Minuman','Transportasi','Kebutuhan Pribadi','Operasional Motor','Tagihan','Kesehatan','Lainnya'];
+const KATEGORI_KELUAR = ['Transportasi','Kebutuhan Pribadi','Tagihan Wajib','Kesehatan','Lainnya'];
 const KATEGORI_WARNA = {
-  'Makan & Minuman':'#FFC629', 'Transportasi':'#FF7A45', 'Kebutuhan Pribadi':'#00A651',
-  'Operasional Motor':'#3B82F6', 'Tagihan':'#A855F7', 'Kesehatan':'#EC4899', 'Lainnya':'#6B7280'
+  'Transportasi':'#FF7A45', 'Kebutuhan Pribadi':'#00A651',
+  'Tagihan Wajib':'#A855F7', 'Kesehatan':'#EC4899', 'Lainnya':'#6B7280'
 };
 function populateKategoriSelect(){
   const sel = document.getElementById('cfKategori');
@@ -434,8 +433,8 @@ function renderCashflow(){
   const listBulanIni = list.filter(c=>c.tanggal.startsWith(prefixBulanIni));
   const keluarBulanIni = listBulanIni.reduce((s,c)=>s+Number(c.jumlah),0);
   const keluarBulanLalu = list.filter(c=>c.tanggal.startsWith(prefixBulanLalu)).reduce((s,c)=>s+Number(c.jumlah),0);
-  const wajibBulanIni = listBulanIni.filter(c=>c.jenis !== 'opsional').reduce((s,c)=>s+Number(c.jumlah),0);
-  const opsionalBulanIni = listBulanIni.filter(c=>c.jenis === 'opsional').reduce((s,c)=>s+Number(c.jumlah),0);
+  const wajibBulanIni = listBulanIni.filter(c=>c.jenis !== 'seharihari').reduce((s,c)=>s+Number(c.jumlah),0);
+  const seharihariBulanIni = listBulanIni.filter(c=>c.jenis === 'seharihari').reduce((s,c)=>s+Number(c.jumlah),0);
   let compareHtml = '';
   if(keluarBulanLalu > 0){
     const pct = Math.round(((keluarBulanIni - keluarBulanLalu) / keluarBulanLalu) * 100);
@@ -446,14 +445,14 @@ function renderCashflow(){
   document.getElementById('cfStats').innerHTML = `
     <div class="stat-card"><div class="label">Pengeluaran Bulan Ini</div><div class="value orange mono">${rupiah(keluarBulanIni)}</div>${compareHtml}</div>
     <div class="stat-card"><div class="label">Wajib Bulan Ini</div><div class="value mono">${rupiah(wajibBulanIni)}</div></div>
-    <div class="stat-card"><div class="label">Opsional Bulan Ini</div><div class="value mono" style="color:#2B6FD1;">${rupiah(opsionalBulanIni)}</div></div>
+    <div class="stat-card"><div class="label">Sehari-hari Bulan Ini</div><div class="value mono" style="color:#2B6FD1;">${rupiah(seharihariBulanIni)}</div></div>
     <div class="stat-card"><div class="label">Total Semua Pengeluaran</div><div class="value mono">${rupiah(totalSemua)}</div></div>
   `;
   const wrap = document.getElementById('cashflowList');
   wrap.innerHTML = list.length ? list.map(c=>`
     <div class="list-row">
       <div>
-        <div class="l-title">${escapeHtml(c.catatan || 'Pengeluaran')}<span class="jenis-tag ${c.jenis==='opsional'?'tag-opsional':'tag-wajib'}">${c.jenis==='opsional'?'Opsional':'Wajib'}</span></div>
+        <div class="l-title">${escapeHtml(c.catatan || 'Pengeluaran')}<span class="jenis-tag ${c.jenis==='seharihari'?'tag-seharihari':'tag-wajib'}">${c.jenis==='seharihari'?'Sehari-hari':'Wajib'}</span></div>
         <div class="l-sub">${formatTgl(c.tanggal)} · ${escapeHtml(c.kategori || 'Lainnya')}</div>
       </div>
       <div style="display:flex; align-items:center; gap:10px;">
