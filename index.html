@@ -265,17 +265,32 @@ function isDriverActiveInPeriod(driver, bulan, tahun){
     return dari <= monthEnd && sampai >= monthStart;
   });
 }
+function isDriverActiveInYear(driver, tahun){
+  const yearStart = `${tahun}-01-01`;
+  const yearEnd = `${tahun}-12-31`;
+  const periods = driver.periodeAktif
+    ? Object.values(driver.periodeAktif)
+    : [{ dari: driver.aktifDari, sampai: driver.aktifSampai }];
+  return periods.some(p=>{
+    const dari = p.dari || '0000-01-01';
+    const sampai = p.sampai || '9999-12-31';
+    return dari <= yearEnd && sampai >= yearStart;
+  });
+}
 
 function render(){
   const { bulan, tahun } = getSelectedBulanTahun();
   if(!bulan || !tahun) return;
   const driverIds = Object.keys(drivers).filter(id => isDriverActiveInPeriod(drivers[id], bulan, tahun));
+  const yearActiveDriverIds = Object.keys(drivers).filter(id => isDriverActiveInYear(drivers[id], tahun));
   const today = todayStr();
 
   let totalHariIni=0, totalBulanIni=0, totalTahunIni=0;
   driverIds.forEach(id=>{
     totalHariIni += sumHari(id, today);
     totalBulanIni += sumBulan(id, bulan, tahun);
+  });
+  yearActiveDriverIds.forEach(id=>{
     totalTahunIni += sumTahun(id, tahun);
   });
   document.getElementById('statsRow').innerHTML = `
