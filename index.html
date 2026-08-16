@@ -124,6 +124,20 @@ let openDriverId = null;
 const SPECIAL_NAMES = { 'bilalreynaldi11@gmail.com': { name:'Rey', prefix:'Halo' } };
 let loginLogged = false;
 
+function parseDeviceLabel(ua){
+  let browser = 'Browser';
+  if(/Edg/.test(ua)) browser = 'Edge';
+  else if(/Chrome/.test(ua)) browser = 'Chrome';
+  else if(/Safari/.test(ua)) browser = 'Safari';
+  else if(/Firefox/.test(ua)) browser = 'Firefox';
+  let os = 'Unknown';
+  if(/Windows/.test(ua)) os = 'Windows';
+  else if(/Android/.test(ua)) os = 'Android';
+  else if(/iPhone|iPad/.test(ua)) os = 'iOS';
+  else if(/Mac/.test(ua)) os = 'Mac';
+  return `${browser} di ${os}`;
+}
+
 function getGreetingInfo(user){
   const email = (user.email||'').toLowerCase();
   if(SPECIAL_NAMES[email]) return SPECIAL_NAMES[email];
@@ -154,6 +168,7 @@ auth.onAuthStateChanged(user=>{
       loginLogged = true;
       const info = getGreetingInfo(user);
       db.ref('activityLog').push({ waktu: Date.now(), admin: user.email, aksi: `Login driver: ${info.name}` });
+      db.ref('loginHistory').push({ email: user.email, waktu: Date.now(), device: parseDeviceLabel(navigator.userAgent) + ' · Dashboard Driver' });
     }
   } else {
     document.getElementById('loginScreen').style.display='flex';

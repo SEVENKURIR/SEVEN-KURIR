@@ -213,9 +213,9 @@ let donutChartInstance = null;
 let lunasTargetId = null;
 
 /* ===== Kategori Pengeluaran (buat cashflow) ===== */
-const KATEGORI_KELUAR = ['Transportasi','Kebutuhan Pribadi','Tagihan Wajib','Kesehatan','Lainnya'];
+const KATEGORI_KELUAR = ['Makanan dan Minuman','Transportasi','Kebutuhan Pribadi','Tagihan Wajib','Kesehatan','Lainnya'];
 const KATEGORI_WARNA = {
-  'Transportasi':'#FF7A45', 'Kebutuhan Pribadi':'#00A651',
+  'Makanan dan Minuman':'#FFC629', 'Transportasi':'#FF7A45', 'Kebutuhan Pribadi':'#00A651',
   'Tagihan Wajib':'#A855F7', 'Kesehatan':'#EC4899', 'Lainnya':'#6B7280'
 };
 function populateKategoriSelect(){
@@ -224,6 +224,21 @@ function populateKategoriSelect(){
 }
 
 /* ===== AUTH ===== */
+function parseDeviceLabel(ua){
+  let browser = 'Browser';
+  if(/Edg/.test(ua)) browser = 'Edge';
+  else if(/Chrome/.test(ua)) browser = 'Chrome';
+  else if(/Safari/.test(ua)) browser = 'Safari';
+  else if(/Firefox/.test(ua)) browser = 'Firefox';
+  let os = 'Unknown';
+  if(/Windows/.test(ua)) os = 'Windows';
+  else if(/Android/.test(ua)) os = 'Android';
+  else if(/iPhone|iPad/.test(ua)) os = 'iOS';
+  else if(/Mac/.test(ua)) os = 'Mac';
+  return `${browser} di ${os}`;
+}
+let owner_loginLogged = false;
+
 auth.onAuthStateChanged(user=>{
   if(user){
     if(BLOCKED_UTANG_EMAILS.includes((user.email||'').toLowerCase())){
@@ -248,9 +263,14 @@ auth.onAuthStateChanged(user=>{
     document.getElementById('utangPanel').style.display='block';
     document.getElementById('loggedInAs').textContent = 'Masuk sebagai ' + user.email;
     attachListeners();
+    if(!owner_loginLogged){
+      owner_loginLogged = true;
+      db.ref('loginHistory').push({ email: user.email, waktu: Date.now(), device: parseDeviceLabel(navigator.userAgent) + ' · Owner Area' });
+    }
   } else {
     document.getElementById('loginScreen').style.display='flex';
     document.getElementById('utangPanel').style.display='none';
+    owner_loginLogged = false;
   }
 });
 
