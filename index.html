@@ -168,7 +168,7 @@ auth.onAuthStateChanged(user=>{
       loginLogged = true;
       const info = getGreetingInfo(user);
       db.ref('activityLog').push({ waktu: Date.now(), admin: user.email, aksi: `Login driver: ${info.name}` });
-      db.ref('loginHistory').push({ email: user.email, waktu: Date.now(), device: parseDeviceLabel(navigator.userAgent) + ' · Dashboard Driver' });
+      db.ref('loginHistory').push({ email: user.email, nama: info.name, waktu: Date.now(), device: parseDeviceLabel(navigator.userAgent) + ' · Dashboard Driver' });
     }
   } else {
     document.getElementById('loginScreen').style.display='flex';

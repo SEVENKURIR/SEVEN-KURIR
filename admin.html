@@ -541,7 +541,7 @@ function renderLoginHistory(logs){
   wrap.innerHTML = list.length ? list.map(l=>`
     <div class="list-row">
       <div>
-        <div class="l-title">${escapeHtml(l.email)}</div>
+        <div class="l-title">${l.nama ? escapeHtml(l.nama) + ' · ' + escapeHtml(l.email) : escapeHtml(l.email)}</div>
         <div class="l-sub">${escapeHtml(l.device || 'Unknown device')} · ${waktuRelatif(l.waktu)}</div>
       </div>
     </div>
