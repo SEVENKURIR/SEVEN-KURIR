@@ -469,7 +469,46 @@ function renderCashflow(){
     <div class="stat-card"><div class="label">Total Semua Pengeluaran</div><div class="value mono">${rupiah(totalSemua)}</div></div>
   `;
   const wrap = document.getElementById('cashflowList');
-  wrap.innerHTML = list.length ? list.map(c=>`
+  wrap.innerHTML = list.length ? list.map(c=>{
+    if(c.id === editingCashflowId){
+      return `
+      <div class="list-row" style="flex-direction:column; align-items:stretch; gap:8px; padding:12px 0;">
+        <div class="field-row">
+          <div class="field" style="margin-bottom:0;">
+            <label>Tanggal</label>
+            <input type="date" id="editCfTanggal_${c.id}" value="${c.tanggal}">
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label>Jumlah</label>
+            <input type="number" id="editCfJumlah_${c.id}" value="${c.jumlah}">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field" style="margin-bottom:0;">
+            <label>Kategori</label>
+            <select id="editCfKategori_${c.id}">
+              ${KATEGORI_KELUAR.map(k=>`<option value="${k}" ${c.kategori===k?'selected':''}>${k}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label>Jenis</label>
+            <select id="editCfJenis_${c.id}">
+              <option value="wajib" ${c.jenis!=='seharihari'?'selected':''}>Wajib</option>
+              <option value="seharihari" ${c.jenis==='seharihari'?'selected':''}>Sehari-hari</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Catatan</label>
+          <input type="text" id="editCfCatatan_${c.id}" value="${escapeHtml(c.catatan||'')}">
+        </div>
+        <div style="display:flex; gap:8px; margin-top:4px;">
+          <button class="btn btn-primary btn-sm" onclick="saveEditCashflow('${c.id}')">Simpan</button>
+          <button class="btn btn-outline btn-sm" onclick="cancelEditCashflow()">Batal</button>
+        </div>
+      </div>`;
+    }
+    return `
     <div class="list-row">
       <div>
         <div class="l-title">${escapeHtml(c.catatan || 'Pengeluaran')}<span class="jenis-tag ${c.jenis==='seharihari'?'tag-seharihari':'tag-wajib'}">${c.jenis==='seharihari'?'Sehari-hari':'Wajib'}</span></div>
@@ -477,10 +516,11 @@ function renderCashflow(){
       </div>
       <div style="display:flex; align-items:center; gap:10px;">
         <div class="l-amount keluar">-${rupiah(c.jumlah)}</div>
+        <button class="btn btn-outline btn-sm" onclick="startEditCashflow('${c.id}')">Edit</button>
         <button class="btn btn-danger btn-sm" onclick="deleteCashflow('${c.id}')">✕</button>
       </div>
-    </div>
-  `).join('') : `<div class="empty-note">Belum ada pengeluaran tercatat.</div>`;
+    </div>`;
+  }).join('') : `<div class="empty-note">Belum ada pengeluaran tercatat.</div>`;
 
   updateCharts(list);
 }
@@ -545,6 +585,28 @@ function updateCharts(list){
 function deleteCashflow(id){
   if(!confirm('Hapus transaksi ini?')) return;
   db.ref(`cashflowAdmin/${id}`).remove();
+}
+
+/* ===== Edit Pengeluaran ===== */
+let editingCashflowId = null;
+function startEditCashflow(id){
+  editingCashflowId = id;
+  renderCashflow();
+}
+function cancelEditCashflow(){
+  editingCashflowId = null;
+  renderCashflow();
+}
+function saveEditCashflow(id){
+  const tanggal = document.getElementById(`editCfTanggal_${id}`).value;
+  const jumlah = parseFloat(document.getElementById(`editCfJumlah_${id}`).value);
+  const kategori = document.getElementById(`editCfKategori_${id}`).value;
+  const jenis = document.getElementById(`editCfJenis_${id}`).value;
+  const catatan = document.getElementById(`editCfCatatan_${id}`).value.trim();
+  if(!tanggal || !jumlah) return;
+  db.ref(`cashflowAdmin/${id}`).update({ tanggal, jumlah, kategori, jenis, catatan }).then(()=>{
+    editingCashflowId = null;
+  });
 }
 
 /* ===== Dark Mode ===== */
