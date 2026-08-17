@@ -441,7 +441,7 @@ auth.onAuthStateChanged(user=>{
     attachListeners();
     if(!loginLogged){
       loginLogged = true;
-      db.ref('loginHistory').push({ email: user.email, waktu: Date.now(), device: parseDeviceLabel(navigator.userAgent) });
+      db.ref('loginHistory').push({ email: user.email, waktu: Date.now(), device: parseDeviceLabel(navigator.userAgent) + ' · Panel Admin' });
     }
   } else {
     document.getElementById('loginScreen').style.display='flex';
