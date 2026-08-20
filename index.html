@@ -118,6 +118,7 @@ function formatTgl(iso){ const [y,m,d] = iso.split('-'); return `${d}/${m}/${y}`
 
 let drivers = {};
 let orders = {};
+let setoranData = {};
 let openDriverId = null;
 
 /* ===== AUTH ===== */
@@ -163,6 +164,7 @@ auth.onAuthStateChanged(user=>{
       setGreeting(user);
     });
     db.ref('orders').on('value', snap=>{ orders = snap.val() || {}; render(); });
+    db.ref('setoran').on('value', snap=>{ setoranData = snap.val() || {}; render(); });
     initFilters();
     if(!loginLogged){
       loginLogged = true;
@@ -251,6 +253,19 @@ function sumBulan(driverId, bulan, tahun){
 function sumTahun(driverId, tahun){
   return orderArray(driverId).filter(o=>o.tanggal.startsWith(String(tahun))).reduce((s,o)=>s+Number(o.nominal||0),0);
 }
+function getPeriodeKini(driverId){
+  const list = Object.values(setoranData[driverId] || {});
+  let startDate = null;
+  if(list.length){
+    const lastSampai = list.map(s=>s.sampaiTanggal).sort().pop();
+    const d = new Date(lastSampai + 'T00:00:00');
+    d.setDate(d.getDate() + 1);
+    startDate = d.toISOString().slice(0,10);
+  }
+  return orderArray(driverId)
+    .filter(o => !startDate || o.tanggal >= startDate)
+    .reduce((s,o)=>s+Number(o.nominal||0),0);
+}
 
 function isDriverActiveInPeriod(driver, bulan, tahun){
   const monthStart = `${tahun}-${String(bulan).padStart(2,'0')}-01`;
@@ -313,8 +328,9 @@ function render(){
     const d = drivers[id];
     const bulanIni = sumBulan(id, bulan, tahun);
     const tahunIni = sumTahun(id, tahun);
+    const periodeKini = getPeriodeKini(id);
     const persen = d.persen ?? 15;
-    const totalSetoranKeAdmin = bulanIni * (persen/100);
+    const totalSetoranKeAdmin = periodeKini * (persen/100);
     const isOpen = openDriverId === id;
 
     const prefix = `${tahun}-${String(bulan).padStart(2,'0')}`;
@@ -332,7 +348,7 @@ function render(){
       <div class="setoran-item" style="margin:14px 20px 0; padding:12px 14px; background:var(--surface-soft); border-radius:12px;">
         <div>
           <div class="periode">Estimasi Setoran di Hari Setoran Nantinya</div>
-          <span class="tag">${persen}% dari bulan ini</span>
+          <span class="tag">${persen}% dari periode kini</span>
         </div>
         <div>
           <div class="bersih">${rupiah(totalSetoranKeAdmin)}</div>
@@ -348,7 +364,8 @@ function render(){
         </div>
         <div class="chevron ${isOpen?'open':''}">▾</div>
       </div>
-      <div class="mini-stats">
+      <div class="mini-stats mini-stats-3">
+        <div class="mini-stat"><div class="lbl">Periode Kini</div><div class="val">${rupiah(periodeKini)}</div></div>
         <div class="mini-stat"><div class="lbl">Bulan</div><div class="val">${rupiah(bulanIni)}</div></div>
         <div class="mini-stat"><div class="lbl">Tahun</div><div class="val">${rupiah(tahunIni)}</div></div>
       </div>
