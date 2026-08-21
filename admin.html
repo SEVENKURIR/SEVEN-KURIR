@@ -230,6 +230,19 @@
     </div>
   </section>
 
+  <!-- ==== Riwayat Setoran ==== -->
+  <section class="section" style="padding-top:0;">
+    <div class="card">
+      <div class="section-head"><h2>Riwayat Setoran</h2></div>
+      <div class="section-desc">Semua catatan setoran yang pernah dibuat per driver. Ini yang jadi patokan "Periode Kini" di dashboard driver — kalau ada yang salah tanggal/nominal, bisa dihapus dari sini.</div>
+      <div class="field">
+        <label>Driver</label>
+        <select id="riwayatSetoranDriver"></select>
+      </div>
+      <div id="riwayatSetoranList" style="max-height:400px; overflow-y:auto;"><div class="empty-note">Pilih driver dulu.</div></div>
+    </div>
+  </section>
+
 <!-- ==== Kalkulator Potongan ==== -->
   <section class="section" style="padding-top:0;">
     <div class="card">
@@ -396,6 +409,7 @@ function flash(el){ el.style.display='block'; setTimeout(()=> el.style.display='
 
 let drivers = {};
 let orders = {};
+let setoranData = {};
 let activityLog = {};
 let persenHistory = {};
 let bulkParsedRows = [];
@@ -514,6 +528,10 @@ function attachListeners(){
     renderAnalisisHari();
     renderTrenDriverChart();
     renderHeatmap();
+  });
+  db.ref('setoran').on('value', snap=>{
+    setoranData = snap.val() || {};
+    renderRiwayatSetoran();
   });
   db.ref('activityLog').on('value', snap=>{
     activityLog = snap.val() || {};
@@ -637,7 +655,7 @@ function renderActivityLog(){
 function populateDriverSelects(){
   const ids = Object.keys(drivers);
   const opts = ids.map(id=>`<option value="${id}">${escapeHtml(drivers[id].name)}</option>`).join('');
-  ['orderDriver','setoranDriver','bulkOrderDriver','manageOrderDriver','trenDriverSelect'].forEach(elId=>{
+  ['orderDriver','setoranDriver','bulkOrderDriver','manageOrderDriver','trenDriverSelect','riwayatSetoranDriver'].forEach(elId=>{
     const el = document.getElementById(elId);
     const prev = el.value;
     el.innerHTML = opts || '<option value="">Belum ada driver</option>';
@@ -648,6 +666,7 @@ function populateDriverSelects(){
   searchEl.innerHTML = '<option value="">Semua Driver</option>' + opts;
   if(ids.includes(prevSearch)) searchEl.value = prevSearch;
   renderTrenDriverChart();
+  renderRiwayatSetoran();
 }
 
 /* ===== Tambah Driver ===== */
@@ -1016,6 +1035,39 @@ document.getElementById('btnBuatSetoran').addEventListener('click', ()=>{
     logActivity(`Buat setoran ${nama}: ${rupiah(totalBersih)} (${persen}%, ${formatTgl(dari)}-${formatTgl(sampai)})`);
   });
 });
+
+/* ===== Riwayat Setoran ===== */
+document.getElementById('riwayatSetoranDriver').addEventListener('change', renderRiwayatSetoran);
+function renderRiwayatSetoran(){
+  const wrap = document.getElementById('riwayatSetoranList');
+  if(!wrap) return;
+  const driverId = document.getElementById('riwayatSetoranDriver').value;
+  if(!driverId){ wrap.innerHTML = `<div class="empty-note">Pilih driver dulu.</div>`; return; }
+
+  const list = Object.keys(setoranData[driverId] || {})
+    .map(id=>({ id, ...setoranData[driverId][id] }))
+    .sort((a,b)=> (b.sampaiTanggal||'').localeCompare(a.sampaiTanggal||''));
+
+  wrap.innerHTML = list.length ? list.map(s=>`
+    <div class="list-row">
+      <div>
+        <div class="l-title">${formatTgl(s.dariTanggal)} — ${formatTgl(s.sampaiTanggal)}</div>
+        <div class="l-sub">${s.persen}% · Kotor ${rupiah(s.totalKotor)} · Dibuat ${s.dibuat ? new Date(s.dibuat).toLocaleDateString('id-ID') : '-'}</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div class="l-amount mono" style="color:var(--green);">${rupiah(s.totalBersih)}</div>
+        <button class="btn btn-danger btn-sm" onclick="deleteSetoran('${driverId}','${s.id}')">✕</button>
+      </div>
+    </div>
+  `).join('') : `<div class="empty-note">Belum ada setoran tercatat buat driver ini — makanya "Periode Kini" di dashboard dia ngitung dari awal data.</div>`;
+}
+function deleteSetoran(driverId, setoranId){
+  if(!confirm('Hapus catatan setoran ini? "Periode Kini" driver ini di dashboard bakal ke-reset ngitung dari setoran sebelumnya (atau dari awal kalau ini satu-satunya).')) return;
+  const nama = drivers[driverId] ? drivers[driverId].name : driverId;
+  db.ref(`setoran/${driverId}/${setoranId}`).remove().then(()=>{
+    logActivity(`Hapus catatan setoran ${nama}`);
+  });
+}
 
 /* ===== Input Orderan Massal (Backfill) ===== */
 function initBulkTahunSelect(){
