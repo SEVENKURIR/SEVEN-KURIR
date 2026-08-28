@@ -364,8 +364,8 @@ function render(){
         </div>
         <div class="chevron ${isOpen?'open':''}">▾</div>
       </div>
-      <div class="mini-stats mini-stats-3">
-        <div class="mini-stat"><div class="lbl">Periode Kini</div><div class="val">${rupiah(periodeKini)}</div></div>
+      <div class="mini-stats ${isBulanBerjalan ? 'mini-stats-3' : ''}">
+        ${isBulanBerjalan ? `<div class="mini-stat"><div class="lbl">Periode Kini</div><div class="val">${rupiah(periodeKini)}</div></div>` : ''}
         <div class="mini-stat"><div class="lbl">Bulan</div><div class="val">${rupiah(bulanIni)}</div></div>
         <div class="mini-stat"><div class="lbl">Tahun</div><div class="val">${rupiah(tahunIni)}</div></div>
       </div>

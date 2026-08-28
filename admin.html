@@ -247,12 +247,12 @@
   <section class="section" style="padding-top:0;">
     <div class="card">
       <div class="section-head"><h2>Kalkulator Potongan Driver</h2></div>
-      <div class="section-desc">15% itu potongan normal. 17%/19%/20% biasanya karena kena denda — kalkulator ini nunjukin selisihnya dibanding potongan normal.</div>
+      <div class="section-desc">15% itu potongan normal. Di bawah itu bonus rajin, di atas itu biasanya karena kena denda — kalkulator ini nunjukin selisihnya dibanding potongan normal, dari 10% sampai 25%.</div>
       <div class="field">
         <label>Total Pendapatan (Rp)</label>
         <input type="number" id="kalkTotal" placeholder="3000000">
       </div>
-      <div id="kalkResult"></div>
+      <div id="kalkResult" style="max-height:420px; overflow-y:auto;"></div>
     </div>
   </section>
 
@@ -1305,7 +1305,7 @@ function renderTrenDriverChart(){
 }
 
 /* ===== Kalkulator Potongan ===== */
-const KALK_PERSEN_LIST = [14, 15, 17, 19, 20, 21];
+const KALK_PERSEN_LIST = Array.from({length: 25-10+1}, (_, i) => 10 + i); // 10% s.d. 25%
 function renderKalkulator(){
   const total = parseFloat(document.getElementById('kalkTotal').value) || 0;
   const normalPersen = 15;
